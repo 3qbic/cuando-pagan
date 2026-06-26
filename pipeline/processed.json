@@ -1,0 +1,7 @@
+{
+  "descripcion": "Semestres ya extraidos y publicados en data/. El scraper marca como NUEVO cualquier semestre del MEF que no este aqui.",
+  "procesados": [
+    "2026-S1",
+    "2026-S2"
+  ]
+}

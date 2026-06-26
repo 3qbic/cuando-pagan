@@ -1,0 +1,32 @@
+name = "calendario-pago-pa"
+main = "src/index.js"
+compatibility_date = "2026-06-26"
+
+# JSON se importa como modulo (esbuild lo empaqueta). No requiere KV ni R2.
+# Datos generados por pipeline/build_dataset.py -> worker/src/data/*.json
+rules = [
+  { type = "Text", globs = ["**/*.json"], fallthrough = true }
+]
+
+# Observabilidad gratis
+[observability]
+enabled = true
+
+# Cron Trigger (gratis): revisa el MEF cada lunes 12:00 UTC.
+[triggers]
+crons = ["0 12 * * 1"]
+
+# KV OPCIONAL: si lo activas, el cron guarda el resultado y /v1/status lo sirve
+# sin re-consultar el MEF. Sin KV, /v1/status hace el chequeo en vivo igual.
+# Para activarlo:
+#   npx wrangler kv namespace create MEF_KV
+#   pega el id devuelto abajo y descomenta:
+# [[kv_namespaces]]
+# binding = "MEF_KV"
+# id = "PEGAR_ID_AQUI"
+
+# --- Despliegue ---
+# 1) npm install
+# 2) python ../pipeline/build_dataset.py   (regenera worker/src/data/)
+# 3) npx wrangler deploy
+# URL final: https://calendario-pago-pa.<tu-subdominio>.workers.dev

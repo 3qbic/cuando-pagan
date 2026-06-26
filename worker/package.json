@@ -1,0 +1,15 @@
+{
+  "name": "calendario-pago-pa-worker",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker que sirve el calendario de pago del sector publico de Panama",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "data": "python ../pipeline/build_dataset.py"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

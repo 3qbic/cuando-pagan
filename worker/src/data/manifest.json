@@ -1,0 +1,19 @@
+{
+  "data_version": 1,
+  "fecha_publicacion": "2026-06-26",
+  "semestres": [
+    "2026-S1",
+    "2026-S2"
+  ],
+  "fuente": "https://www.mef.gob.pa/transparencia/calendario-de-pago-del-sector-publico/",
+  "archivos": {
+    "calendario": "calendario.json",
+    "grupos_entidades": "grupos_entidades.json",
+    "xiii_mes": "xiii_mes.json"
+  },
+  "conteo": {
+    "2026-S1": 60,
+    "2026-S2": 60
+  },
+  "total_filas": 120
+}

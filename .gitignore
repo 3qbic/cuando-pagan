@@ -1,0 +1,12 @@
+# Node / Cloudflare Worker
+worker/node_modules/
+worker/dist/
+**/.wrangler/
+*.log
+
+# Cache del scraper (PDF descargados)
+pipeline/descargas/
+
+# Python
+__pycache__/
+*.pyc
