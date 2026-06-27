@@ -1,0 +1,34 @@
+name: cuando_pagan
+description: "App independiente y no oficial para consultar fechas de pago del sector público de Panamá."
+publish_to: "none"
+version: 0.1.0+1
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+  drift: ^2.18.0
+  drift_flutter: ^0.2.0
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.3
+  shared_preferences: ^2.2.3
+  http: ^1.2.2
+  timezone: ^0.9.4
+  intl: ^0.20.0
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  mocktail: ^1.0.4
+  build_runner: ^2.4.11
+  drift_dev: ^2.18.0
+  riverpod_generator: ^2.4.0
+  flutter_lints: ^4.0.0
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/seed/all.json
+    - assets/data/siglas_entidades.json
