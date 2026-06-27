@@ -1,1 +1,22 @@
-{}
+{
+  "Min. de Desarrollo Social": ["MIDES"],
+  "Min. de Educacion": ["MEDUCA"],
+  "Min. de Salud": ["MINSA"],
+  "Min. de Obras Publicas": ["MOP"],
+  "Min. de Economia y Finanzas": ["MEF"],
+  "Min. de Gobierno": ["MINGOB"],
+  "Min. de Comercio e Industrias": ["MICI"],
+  "Min. de Relaciones Exteriores": ["MIRE"],
+  "Min. de Desarrollo Agropecuario": ["MIDA"],
+  "Min. de Seguridad Publica": ["MINSEG"],
+  "Min. de Ambiente": ["MiAMBIENTE"],
+  "Min. de Trabajo y Desarrollo Laboral": ["MITRADEL"],
+  "Min. de Vivienda": ["MIVIOT"],
+  "Min. de la Mujer": ["MINMUJER"],
+  "Min. de Cultura": ["MiCULTURA"],
+  "Min. de la Presidencia": ["MPRE"],
+  "Organo Judicial": ["OJ"],
+  "Contraloria General": ["CGR"],
+  "Asamblea Nacional": ["AN"],
+  "Tribunal Electoral": ["TE"]
+}
