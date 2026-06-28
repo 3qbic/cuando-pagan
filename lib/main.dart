@@ -49,7 +49,7 @@ const _kDisclaimer = 'disclaimerAck';
 const _titular = '3qbic';
 const _sitio3qbic = 'https://3qbic.com';
 const _repoUrl = 'github.com/3qbic/cuando-pagan';
-const _contacto = 'hola@3qbic.com';
+const _contacto = 'cuandopagan@3qbic.com';
 const _mefUrl = 'www.mef.gob.pa/transparencia/calendario-de-pago-del-sector-publico';
 const _mefFullUrl = 'https://www.mef.gob.pa/transparencia/calendario-de-pago-del-sector-publico/';
 

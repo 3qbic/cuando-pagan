@@ -1,5 +1,5 @@
-/// Base del Cloudflare Worker existente. Reemplazar por la URL real tras `wrangler deploy`.
-const String kWorkerBaseUrl = 'https://calendario-pago-pa.example.workers.dev';
+/// Base del Cloudflare Worker (subdominio de 3qbic). El Worker sirve /v1/* aquí.
+const String kWorkerBaseUrl = 'https://cuandopagan.3qbic.com';
 
 /// Días sin fecha futura ni publicación nueva tras los cuales el dato se considera desactualizado.
 const int kUmbralStaleDias = 195;
