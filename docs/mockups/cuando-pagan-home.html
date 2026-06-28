@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿Cuándo Pagan? — mockup Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,650&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --canvas:#0B0B0C; --surface1:#141416; --surface2:#1C1C1F;
+    --textHi:#F7F5F0; --textMid:#C7C5BD; --textMute:#9A9A93;
+    --lima:#C6F647; --onAccent:#0B0B0C; --marigold:#F2B441;
+    --published:#4FC78A; --pending:#9A9A93; --stale:#E5533D;
+    --hairline:rgba(247,245,240,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:radial-gradient(1200px 700px at 50% -10%, #15150f 0%, var(--canvas) 55%);
+    color:var(--textHi); font-family:"Space Grotesk",system-ui,sans-serif;
+    min-height:100vh; padding:48px 24px 64px; -webkit-font-smoothing:antialiased;
+  }
+  .head{max-width:1160px;margin:0 auto 36px}
+  .kicker{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--lima);font-weight:700}
+  .title{font-family:"Fraunces",serif;font-weight:650;font-size:40px;letter-spacing:-.02em;margin-top:8px;line-height:1.02}
+  .sub{color:var(--textMute);margin-top:10px;max-width:640px;font-size:15px;line-height:1.5}
+  .stage{display:flex;gap:32px;justify-content:center;flex-wrap:wrap;max-width:1160px;margin:0 auto}
+  .phone{
+    width:320px;border-radius:42px;background:var(--canvas);
+    border:1px solid var(--hairline); padding:14px;
+    box-shadow:0 40px 90px -30px rgba(0,0,0,.85), inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  .screen{border-radius:30px;overflow:hidden;background:var(--canvas);height:640px;display:flex;flex-direction:column}
+  .label{text-align:center;color:var(--textMute);font-size:12.5px;margin-top:14px;letter-spacing:.02em}
+  /* Ribbon no oficial (DoD) */
+  .ribbon{background:var(--surface2);color:var(--textMute);font-size:12px;letter-spacing:.04em;
+    padding:11px 16px;text-align:center;border-bottom:1px solid var(--hairline)}
+  .ribbon b{color:var(--textMid);font-weight:600}
+  .body{flex:1;padding:22px 20px;display:flex;flex-direction:column;gap:18px}
+  .overline{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+  /* Póster lima */
+  .poster{background:var(--lima);color:var(--onAccent);border-radius:26px;padding:24px}
+  .poster .overline{color:var(--onAccent);opacity:.85}
+  .day{font-family:"Fraunces",serif;font-weight:650;font-size:104px;line-height:.86;letter-spacing:-.04em;margin-top:6px}
+  .when{font-family:"Fraunces",serif;font-weight:600;font-size:24px;margin-top:2px}
+  .count{font-weight:600;font-size:18px;margin-top:14px;font-variant-numeric:tabular-nums}
+  .poster .row{display:flex;align-items:center;gap:10px;margin-top:20px;flex-wrap:wrap}
+  .chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;
+    font-size:13px;font-weight:600;border:1.5px solid currentColor}
+  .chip.onlima{color:var(--onAccent)}
+  .src{font-size:12.5px;color:var(--onAccent);opacity:.8;margin-left:auto;font-weight:500}
+  .inst{margin-top:2px;font-size:13px;color:var(--textMute)}
+  .instname{font-size:18px;font-weight:600;color:var(--textHi)}
+  /* Estado neutro (Pendiente) */
+  .neutro{background:var(--surface2);border:1px dashed rgba(247,245,240,.28);border-radius:26px;padding:24px}
+  .neutro .chip{color:var(--pending)}
+  .neutro p{color:var(--textMid);font-size:17px;line-height:1.45;margin-top:14px}
+  .neutro .src{color:var(--textMute);margin-top:16px;display:block}
+  /* Sin favorito */
+  .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:18px;padding:0 8px}
+  .empty h2{font-family:"Fraunces",serif;font-weight:600;font-size:26px;line-height:1.15}
+  .cta{background:var(--lima);color:var(--onAccent);border:none;border-radius:14px;
+    padding:15px 22px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer}
+  .listrow{display:flex;flex-direction:column;gap:2px;padding:14px 4px;border-bottom:1px solid var(--hairline);text-align:left}
+  .listrow .n{font-size:16px;color:var(--textHi)}
+  .listrow .g{font-size:13px;color:var(--textMute)}
+  .field{background:#100F12;border:1px solid var(--hairline);border-radius:14px;padding:13px 14px;color:var(--textMute);font-size:14px;display:flex;gap:8px;align-items:center}
+  .legend{max-width:1160px;margin:48px auto 0;display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start}
+  .swatches{display:flex;gap:10px}
+  .sw{width:46px;height:46px;border-radius:12px;border:1px solid var(--hairline);display:flex;align-items:flex-end;justify-content:center;font-size:9px;color:var(--textMute);padding-bottom:3px}
+  .legend h3{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--textMute);margin-bottom:12px;font-weight:600}
+  .typ span{display:block}
+  .disc{max-width:1160px;margin:34px auto 0;color:var(--textMute);font-size:12.5px;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="kicker">Mockup de diseño · no es la app aún</div>
+    <div class="title">¿Cuándo Pagan?</div>
+    <div class="sub">Dirección "editorial / dark-first". El color comunica la procedencia del dato: la tarjeta se vuelve <b style="color:var(--lima)">póster lima</b> solo cuando la fecha está <b>Publicada</b> por el MEF. Tipografía: Fraunces (fechas) + Space Grotesk (datos).</div>
+  </div>
+
+  <div class="stage">
+    <!-- 1. Home con próximo pago (Publicada) -->
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="ribbon">App independiente · <b>No oficial</b></div>
+        <div class="body">
+          <div>
+            <div class="inst">Mi institución</div>
+            <div class="instname">Min. de Desarrollo Social · Grupo 3</div>
+          </div>
+          <div class="poster">
+            <div class="overline">Próximo pago</div>
+            <div class="day">23</div>
+            <div class="when">julio · jueves</div>
+            <div class="count">Faltan 22 días</div>
+            <div class="row">
+              <span class="chip onlima">✓ Publicada</span>
+              <span class="src">Fuente pública: MEF</span>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <div class="label">Home · próximo pago Publicada (póster lima)</div>
+    </div>
+
+    <!-- 2. Pendiente (neutro) -->
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="ribbon">App independiente · <b>No oficial</b></div>
+        <div class="body">
+          <div>
+            <div class="inst">Mi institución</div>
+            <div class="instname">Min. de Educación · Grupo 1</div>
+          </div>
+          <div class="neutro">
+            <span class="chip">◷ Pendiente</span>
+            <p>El MEF aún no publica este período.</p>
+            <span class="src">Fuente pública: MEF · App no oficial</span>
+          </div>
+        </div>
+      </div></div>
+      <div class="label">Estado Pendiente (neutro punteado, sin lima)</div>
+    </div>
+
+    <!-- 3. Sin favorito + selector -->
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="ribbon">App independiente · <b>No oficial</b></div>
+        <div class="empty">
+          <div class="field">🔍 Buscar institución (ej. MIDES)</div>
+          <div style="width:100%;margin-top:6px">
+            <div class="listrow"><span class="n">Ministerio de Desarrollo Social</span><span class="g">Grupo 3 · MIDES</span></div>
+            <div class="listrow"><span class="n">Ministerio de Educación</span><span class="g">Grupo 1 · MEDUCA</span></div>
+            <div class="listrow"><span class="n">Ministerio de Salud</span><span class="g">Grupo 3 · MINSA</span></div>
+          </div>
+        </div>
+      </div></div>
+      <div class="label">Selector de institución (busca por sigla)</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div>
+      <h3>Paleta</h3>
+      <div class="swatches">
+        <div class="sw" style="background:#0B0B0C;color:#9A9A93">0B0B0C</div>
+        <div class="sw" style="background:#C6F647;color:#0B0B0C">C6F647</div>
+        <div class="sw" style="background:#F7F5F0;color:#0B0B0C">F7F5F0</div>
+        <div class="sw" style="background:#1C1C1F">surf</div>
+        <div class="sw" style="background:#4FC78A;color:#0B0B0C">pub</div>
+        <div class="sw" style="background:#E5533D;color:#0B0B0C">stale</div>
+      </div>
+    </div>
+    <div class="typ">
+      <h3>Tipografía</h3>
+      <span style="font-family:Fraunces;font-size:30px;font-weight:650;letter-spacing:-.02em">Fraunces · 23 julio</span>
+      <span style="font-family:'Space Grotesk';font-size:16px;color:var(--textMid);margin-top:6px">Space Grotesk · Faltan 22 días · Grupo 3</span>
+    </div>
+  </div>
+
+  <div class="disc">Anti-AI-slop: sin morado Material 3, sin gradientes genéricos, sin colores de bandera. El badge "No oficial" es omnipresente (Definition of Done). · Este HTML es solo un mockup de dirección; la app real se construye en Flutter (Plan 2).</div>
+</body>
+</html>

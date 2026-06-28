@@ -19,6 +19,7 @@ dependencies:
   http: ^1.2.2
   timezone: ^0.9.4
   intl: ^0.20.0
+  url_launcher: ^6.3.2
 dev_dependencies:
   flutter_test:
     sdk: flutter
