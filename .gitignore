@@ -21,3 +21,7 @@ pubspec.lock
 .idea/
 .metadata
 
+
+# macOS
+.DS_Store
+**/.DS_Store

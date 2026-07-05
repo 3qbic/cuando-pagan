@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>¿Cuándo Pagan? — modern dark mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg0:#070C14; --bg1:#0C1524; --surf:#111C2E; --surf2:#16233A;
+    --hi:#EEF4F8; --mid:#9FB0C3; --mute:#6C7C90; --line:rgba(255,255,255,.08);
+    --acc:#25E6A4; --acc2:#12B98A; --gold:#F4C868; --danger:#FF6B5A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Sora",system-ui,sans-serif;background:#05070C;color:var(--hi);
+       -webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:34px 16px 60px}
+  .phone{width:392px;border-radius:44px;padding:12px;background:linear-gradient(#0a0f18,#05070c);
+    border:1px solid rgba(255,255,255,.06);box-shadow:0 50px 120px -30px #000, inset 0 0 0 1px rgba(255,255,255,.02)}
+  .screen{border-radius:34px;overflow:hidden;height:812px;position:relative;
+    background:
+      radial-gradient(120% 60% at 80% -8%, rgba(37,230,164,.18), transparent 60%),
+      radial-gradient(90% 50% at 0% 0%, rgba(38,120,255,.12), transparent 55%),
+      linear-gradient(180deg,var(--bg1),var(--bg0) 60%,#05070C)}
+  .pad{padding:16px 18px}
+  /* status bar */
+  .status{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mid);padding:10px 20px 0}
+  /* header */
+  .head{display:flex;align-items:center;gap:10px;padding:6px 18px 2px}
+  .brand{font-weight:800;font-size:20px;letter-spacing:-.3px}
+  .pill{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;
+    color:var(--gold);background:rgba(244,200,104,.10);border:1px solid rgba(244,200,104,.28);padding:6px 11px;border-radius:999px}
+  .kebab{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:var(--mid);
+    background:rgba(255,255,255,.05);border:1px solid var(--line)}
+  /* institution */
+  .inst{margin:12px 18px 0;display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
+    border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+  .instico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;
+    background:linear-gradient(160deg,rgba(37,230,164,.25),rgba(37,230,164,.06));border:1px solid rgba(37,230,164,.3);color:var(--acc)}
+  .inst .k{font-size:10.5px;letter-spacing:1.3px;color:var(--mute);font-weight:700}
+  .inst .n{font-size:15.5px;font-weight:700;margin-top:1px}
+  .inst .g{font-size:12px;color:var(--mid)}
+  .chg{margin-left:auto;font-size:12.5px;color:var(--acc);font-weight:600;background:rgba(37,230,164,.08);
+    border:1px solid rgba(37,230,164,.22);padding:8px 10px;border-radius:11px}
+  /* hero */
+  .hero{margin:14px 18px 0;border-radius:26px;padding:22px;position:relative;overflow:hidden;
+    background:
+      radial-gradient(120% 90% at 90% 0%, rgba(37,230,164,.22), transparent 55%),
+      linear-gradient(160deg,#16273C,#0F1B2C);
+    border:1px solid rgba(37,230,164,.18);
+    box-shadow:0 30px 60px -24px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.08)}
+  .hero .ov{font-size:11px;letter-spacing:2px;color:var(--acc);font-weight:800}
+  .herorow{display:flex;align-items:center;gap:18px;margin-top:12px}
+  .date{flex:1}
+  .date .d{font-size:56px;font-weight:800;line-height:.9;letter-spacing:-2px}
+  .date .m{font-size:19px;font-weight:600;color:var(--hi);margin-top:4px}
+  .date .w{font-size:13.5px;color:var(--mid)}
+  /* countdown ring */
+  .ring{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;flex:none;
+    background:
+      radial-gradient(closest-side, #12203260 79%, transparent 80% 100%),
+      conic-gradient(var(--acc) 0 62%, rgba(255,255,255,.09) 62% 100%);
+    box-shadow:0 0 34px -6px rgba(37,230,164,.45), inset 0 0 0 1px rgba(255,255,255,.05)}
+  .ring .in{width:96px;height:96px;border-radius:50%;background:radial-gradient(140% 140% at 50% 0%,#182A40,#0E1929);
+    display:grid;place-items:center;text-align:center;border:1px solid rgba(255,255,255,.06)}
+  .ring .num{font-size:38px;font-weight:800;line-height:1;color:#fff}
+  .ring .lbl{font-size:10.5px;color:var(--mid);letter-spacing:.5px;margin-top:2px}
+  .herofoot{display:flex;align-items:center;gap:10px;margin-top:18px}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:999px;
+    color:#0A150F;background:linear-gradient(180deg,#3BF0B4,#17C892);box-shadow:0 6px 16px -6px rgba(37,230,164,.6)}
+  .src{margin-left:auto;font-size:12px;color:var(--mid);display:inline-flex;align-items:center;gap:5px}
+  /* proceso timeline */
+  .card{margin:14px 18px 0;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+    border:1px solid var(--line);border-radius:20px;padding:16px 18px}
+  .card .t{font-size:11px;letter-spacing:1.4px;color:var(--mute);font-weight:700}
+  .steps{display:flex;justify-content:space-between;margin-top:16px;position:relative}
+  .steps:before{content:"";position:absolute;left:16px;right:16px;top:11px;height:2px;background:rgba(255,255,255,.09)}
+  .steps .prog{content:"";position:absolute;left:16px;top:11px;height:2px;width:64%;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:2px}
+  .step{display:flex;flex-direction:column;align-items:center;gap:7px;z-index:1;width:70px}
+  .dot{width:22px;height:22px;border-radius:50%;background:#16233A;border:2px solid rgba(255,255,255,.14);display:grid;place-items:center;font-size:11px;color:var(--mute)}
+  .step.done .dot{background:linear-gradient(180deg,#3BF0B4,#17C892);border-color:transparent;color:#0A150F;box-shadow:0 0 14px -3px rgba(37,230,164,.6)}
+  .step.now .dot{background:#0E1929;border-color:var(--acc);color:var(--acc);box-shadow:0 0 14px -2px rgba(37,230,164,.5)}
+  .step .sl{font-size:10.5px;color:var(--mid);text-align:center;line-height:1.25}
+  .step .sd{font-size:10.5px;color:var(--mute)}
+  .step.now .sl{color:var(--hi);font-weight:600}
+  /* bottom nav */
+  .nav{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;padding:12px 10px 18px;
+    background:linear-gradient(180deg,rgba(7,12,20,0),rgba(7,12,20,.9) 40%);backdrop-filter:blur(8px);border-top:1px solid var(--line)}
+  .nb{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:10.5px;color:var(--mute);font-weight:600}
+  .nb svg{width:22px;height:22px;stroke:var(--mute);fill:none;stroke-width:1.9}
+  .nb.on{color:var(--acc)} .nb.on svg{stroke:var(--acc)}
+  .nb.on:after{content:"";position:absolute;bottom:8px;width:5px;height:5px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc)}
+</style>
+</head>
+<body>
+  <div class="phone"><div class="screen">
+    <div class="status"><span>9:41</span><span>▓ ▂ �100%</span></div>
+    <div class="head">
+      <span class="brand">¿Cuándo Pagan?</span>
+      <span class="pill">ⓘ No oficial</span>
+      <span class="kebab">⋮</span>
+    </div>
+
+    <div class="inst">
+      <div class="instico">🏛️</div>
+      <div>
+        <div class="k">MI INSTITUCIÓN</div>
+        <div class="n">Min. de Desarrollo Social</div>
+        <div class="g">Grupo 3 · MIDES</div>
+      </div>
+      <div class="chg">Cambiar</div>
+    </div>
+
+    <div class="hero">
+      <div class="ov">PRÓXIMO PAGO</div>
+      <div class="herorow">
+        <div class="date">
+          <div class="d">29</div>
+          <div class="m">de junio</div>
+          <div class="w">lunes</div>
+        </div>
+        <div class="ring"><div class="in"><div><div class="num">5</div><div class="lbl">DÍAS</div></div></div></div>
+      </div>
+      <div class="herofoot">
+        <span class="badge">✓ Publicada</span>
+        <span class="src">Fuente pública: MEF ↗</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="t">PROCESO DEL PAGO</div>
+      <div class="steps">
+        <div class="prog"></div>
+        <div class="step done"><div class="dot">✓</div><div class="sl">Registro</div><div class="sd">17 jun</div></div>
+        <div class="step done"><div class="dot">✓</div><div class="sl">Cierre</div><div class="sd">24 jun</div></div>
+        <div class="step now"><div class="dot">•</div><div class="sl">Proceso ACH</div><div class="sd">27 jun</div></div>
+        <div class="step"><div class="dot"></div><div class="sl">Pago</div><div class="sd">29 jun</div></div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="nb on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Inicio</div>
+      <div class="nb"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>Calendario</div>
+      <div class="nb"><svg viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 12h18M12 8v13M12 8s-3-5-6-2 1 4 6 2zM12 8s3-5 6-2-1 4-6 2z"/></svg>Décimo</div>
+      <div class="nb"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v.5M11 11h1v5h1"/></svg>Acerca</div>
+    </div>
+  </div></div>
+</body>
+</html>
