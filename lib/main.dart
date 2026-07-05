@@ -47,7 +47,7 @@ const _kFavorita = 'favorita';
 const _kDisclaimer = 'disclaimerAck';
 const _titular = '3qbic';
 const _sitio3qbic = 'https://3qbic.com';
-const _repoUrl = 'github.com/alexismgarciad/calendario-pago-pa';
+const _repoUrl = 'github.com/3qbic/cuando-pagan';
 const _contacto = 'cuandopagan@3qbic.com';
 const _mefFullUrl = 'https://www.mef.gob.pa/transparencia/calendario-de-pago-del-sector-publico/';
 
@@ -178,6 +178,16 @@ double _progreso(EntradaCalendario e, DateTime hoy) {
   if (total <= 0) return 1;
   final t = hoy.difference(ini).inSeconds / total;
   return t.clamp(0.0, 1.0);
+}
+
+/// Subtítulo de una selección: nunca repite la etiqueta.
+/// Entidad → "Grupo 3 · MIDES"; Categoría → descriptor genérico.
+String _descSeleccion(Seleccion s) {
+  if (s is SeleccionEntidad) {
+    final sigla = s.entidad.siglas.isNotEmpty ? s.entidad.siglas.first : null;
+    return sigla != null ? '${s.categoria.display} · $sigla' : s.categoria.display;
+  }
+  return 'Categoría del calendario del MEF';
 }
 
 // ───────────────────────── Shell + bottom nav ─────────────────────────
@@ -399,7 +409,7 @@ class _InstitucionCard extends StatelessWidget {
             const Text('MI INSTITUCIÓN', style: TextStyle(fontSize: 10, letterSpacing: 1.3, color: _mute, fontWeight: FontWeight.w700)),
             const SizedBox(height: 2),
             Text(seleccion.etiqueta, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: _hi), maxLines: 2),
-            Text(seleccion.categoria.display, style: const TextStyle(fontSize: 12, color: _mid)),
+            Text(_descSeleccion(seleccion), style: const TextStyle(fontSize: 12, color: _mid)),
           ]),
         ),
         TextButton(
@@ -644,7 +654,8 @@ class CalendarioTab extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
       children: [
         Text('Calendario ${ds.manifest.semestres.isNotEmpty ? "2026" : ""}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi)),
-        Text('${seleccion.etiqueta} · ${seleccion.categoria.display}', style: const TextStyle(fontSize: 13, color: _mid)),
+        Text(seleccion is SeleccionEntidad ? '${seleccion.etiqueta} · ${seleccion.categoria.display}' : seleccion.etiqueta,
+            style: const TextStyle(fontSize: 13, color: _mid)),
         const SizedBox(height: 14),
         for (final e in fechas)
           Container(
@@ -774,10 +785,28 @@ class _OnboardingViewState extends State<OnboardingView> {
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: _surf2, borderRadius: BorderRadius.circular(12)),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(s.etiqueta, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _hi)),
-              Text(s.categoria.display, style: const TextStyle(fontSize: 13, color: _mid)),
+            decoration: BoxDecoration(
+              color: const Color(0x0F25E6A4),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0x3325E6A4)),
+            ),
+            child: Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(colors: [Color(0x4025E6A4), Color(0x1025E6A4)]),
+                  border: Border.all(color: const Color(0x5525E6A4)),
+                ),
+                child: const Icon(Icons.account_balance_rounded, color: _acc, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(s.etiqueta, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _hi), maxLines: 2),
+                  Text(_descSeleccion(s), style: const TextStyle(fontSize: 12.5, color: _mid)),
+                ]),
+              ),
             ]),
           ),
           const SizedBox(height: 18),
@@ -804,7 +833,6 @@ class _ItemInstitucion extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
-    final sigla = sel is SeleccionEntidad && (sel as SeleccionEntidad).entidad.siglas.isNotEmpty ? (sel as SeleccionEntidad).entidad.siglas.first : null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
@@ -818,7 +846,7 @@ class _ItemInstitucion extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                 Text(sel.etiqueta, style: const TextStyle(fontSize: 15.5, color: _hi, fontWeight: FontWeight.w500)),
-                Text('${sel.categoria.display}${sigla != null ? ' · $sigla' : ''}', style: const TextStyle(fontSize: 12.5, color: _mute)),
+                Text(_descSeleccion(sel), style: const TextStyle(fontSize: 12.5, color: _mute)),
               ]),
             ),
             const Icon(Icons.chevron_right, color: _mute),
@@ -934,7 +962,7 @@ List<Widget> _acercaHijos(BuildContext context) => [
       _enlace(context, Icons.code, 'Código fuente (repositorio)', () => _abrir('https://$_repoUrl')),
       _enlace(context, Icons.mail_outline, 'Escríbenos: $_contacto', () => _abrir('mailto:$_contacto')),
       _enlace(context, Icons.language, 'Hecho por 3qbic', () => _abrir(_sitio3qbic)),
-      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.1.0', applicationLegalese: '© 2026 $_titular — Alexis García')),
+      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.1.1', applicationLegalese: '© 2026 $_titular — Alexis García')),
       _enlace(context, Icons.privacy_tip_outlined, 'Política de privacidad', () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen()))),
       const SizedBox(height: 12),
       const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
