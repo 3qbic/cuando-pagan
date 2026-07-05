@@ -10,7 +10,7 @@
 > como **fuente pública** de la información. Las fechas son **referenciales**; ante cualquier
 > diferencia, prevalece la publicación oficial del MEF. La app no tramita ni resuelve pagos.
 
-Proyecto **de código abierto** (Licencia MIT), hecho por [**3qbic**](https://3qbic.com). Sin cuentas, sin recolección de datos, sin rastreadores: todo se queda en tu dispositivo.
+Proyecto **de código abierto** (Licencia MIT), hecho por [**3qbic**](https://3qbic.com). Sin cuentas ni datos personales; sin rastreadores publicitarios ni perfiles. La versión web usa analítica agregada y sin cookies (Cloudflare Web Analytics); la app móvil, ninguna. Lo tuyo se queda en tu dispositivo.
 
 ---
 
