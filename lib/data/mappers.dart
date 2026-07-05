@@ -47,7 +47,10 @@ String displayEntidad(String nombreWire) {
     'Nacion': 'Nación', 'Fiscalia': 'Fiscalía', 'Defensoria': 'Defensoría',
     'Republica': 'República', 'Admon.': 'Administración',
   };
-  tildes.forEach((k, v) => d = d.replaceAll(k, v));
+  // Reemplazo por "palabra" (con fronteras): evita que "Nacion"->"Nación" dañe
+  // "Nacional"->"Naciónal" o "Region"->"Regional". No sigue letra a cada lado.
+  tildes.forEach((k, v) =>
+      d = d.replaceAll(RegExp('(?<![A-Za-zÀ-ÿ])${RegExp.escape(k)}(?![A-Za-zÀ-ÿ])'), v));
   return d;
 }
 

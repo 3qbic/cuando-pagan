@@ -953,14 +953,14 @@ List<Widget> _acercaHijos(BuildContext context) => [
       _seccion('Qué es', '«¿Cuándo Pagan?» es un proyecto independiente, gratuito y de código abierto que te muestra las fechas de pago del sector público de Panamá: jubilados, gastos de representación y grupos 1, 2 y 3.'),
       _seccion('Qué NO es', 'No es una app oficial del Gobierno de Panamá. No está afiliada, patrocinada ni avalada por el MEF ni por ninguna entidad del Estado. No tramita ni resuelve pagos.'),
       _seccion('De dónde salen las fechas', 'Se transcriben de lo que el MEF publica en sus canales oficiales. Las fechas son referenciales; ante cualquier diferencia, prevalece la publicación oficial del MEF.'),
-      _seccion('Privacidad', 'No pedimos cuenta ni datos personales. No recolectamos ni compartimos información. Todo se queda en tu dispositivo.'),
+      _seccion('Privacidad', 'No pedimos cuenta ni datos personales. En la web usamos analítica agregada y sin cookies (Cloudflare); la app móvil, no. Lo tuyo se queda en tu dispositivo.'),
       _seccion('Código abierto', 'El código y los datos son públicos y auditables.'),
       const SizedBox(height: 4),
       _enlace(context, Icons.open_in_new, 'Ver el calendario en el sitio del MEF', () => _abrir(_mefFullUrl)),
       _enlace(context, Icons.code, 'Código fuente (repositorio)', () => _abrir('https://$_repoUrl')),
       _enlace(context, Icons.mail_outline, 'Escríbenos: $_contacto', () => _abrir('mailto:$_contacto')),
       _enlace(context, Icons.language, 'Hecho por 3qbic', () => _abrir(_sitio3qbic)),
-      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.2.0', applicationLegalese: '© 2026 $_titular — Alexis García')),
+      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.2.1', applicationLegalese: '© 2026 $_titular — Alexis García')),
       _enlace(context, Icons.privacy_tip_outlined, 'Política de privacidad', () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen()))),
       const SizedBox(height: 12),
       const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
@@ -971,14 +971,15 @@ class PrivacidadScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _legalScaffold(context, 'Política de privacidad', [
         const Text('Política de privacidad', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi)),
-        const Text('Resumen: no recolectamos tus datos. Todo se queda en tu teléfono.', style: TextStyle(fontSize: 14, color: _mid)),
+        const Text('Resumen: no recolectamos datos personales. Lo tuyo se queda en tu teléfono.', style: TextStyle(fontSize: 14, color: _mid)),
         const SizedBox(height: 16),
         _seccion('1. Quiénes somos', 'App independiente, gratuita y de código abierto. No es oficial del Gobierno ni del MEF. Responsable: 3qbic (3qbic.com).'),
-        _seccion('2. No recolectamos tus datos', 'Funciona 100% en tu dispositivo. Sin cuenta. No pedimos nombre, cédula, teléfono ni correo. No usamos publicidad ni rastreadores.'),
+        _seccion('2. No recolectamos datos personales', 'Funciona en tu dispositivo. Sin cuenta. No pedimos nombre, cédula, teléfono ni correo. No usamos publicidad, rastreadores publicitarios ni perfiles de usuario.'),
         _seccion('3. Qué se guarda en tu dispositivo', 'Tu institución favorita, preferencias y una copia del calendario. Nunca sale de tu dispositivo.'),
         _seccion('4. Conexión a internet', 'Descarga el calendario (datos públicos) desde infraestructura de 3qbic sobre Cloudflare. No se envían datos personales; Cloudflare procesa tu IP de forma técnica y temporal solo para entregar el contenido.'),
-        _seccion('5. Tus derechos (Ley 81/2019)', 'Derechos ARCO. Como no almacenamos datos en servidores, tú controlas tu información en el dispositivo. Autoridad: ANTAI.'),
-        _seccion('6. Contacto', '$_contacto · $_repoUrl'),
+        _seccion('5. Analítica (solo versión web)', 'La versión web (cuandopagan.3qbic.com) usa analítica agregada y sin cookies (Cloudflare Web Analytics): cuenta visitas y velocidad de carga de forma anónima, sin cookies, sin identificarte y sin seguirte entre sitios. La app móvil no incluye ninguna analítica.'),
+        _seccion('6. Tus derechos (Ley 81/2019)', 'Derechos ARCO. Como no almacenamos datos personales en servidores, tú controlas tu información en el dispositivo. Autoridad: ANTAI.'),
+        _seccion('7. Contacto', '$_contacto · $_repoUrl'),
       ]);
 }
 

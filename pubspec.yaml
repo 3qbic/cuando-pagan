@@ -1,7 +1,7 @@
 name: cuando_pagan
 description: "App independiente y no oficial para consultar fechas de pago del sector público de Panamá."
 publish_to: "none"
-version: 0.2.0+3
+version: 0.2.1+4
 environment:
   sdk: ">=3.4.0 <4.0.0"
 dependencies:
