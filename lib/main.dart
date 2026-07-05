@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -19,7 +20,6 @@ import 'domain/entities/manifest.dart';
 import 'domain/entities/proximo_pago.dart';
 import 'domain/entities/seleccion.dart';
 import 'domain/entities/xiii_mes.dart';
-import 'domain/logic/contador.dart';
 import 'domain/logic/proximo_pago.dart';
 
 void main() async {
@@ -29,28 +29,26 @@ void main() async {
   runApp(const CuandoPaganApp());
 }
 
-// ── Tokens (dirección clara / confiable, acento teal). Final = Claude Design. ──
-const _accent = Color(0xFF0E7C66);
-const _accentSoft = Color(0xFFE7F4EE);
-const _heroTint = Color(0xFFF0FAF5);
-const _ink = Color(0xFF14211D);
-const _muted = Color(0xFF6A746F);
-const _bg = Color(0xFFF4F6F5);
-const _line = Color(0xFFE4E9E7);
-const _amber = Color(0xFF9A6400);
-const _amberBg = Color(0xFFFFF8EE);
-const _amberLine = Color(0xFFF0DCBC);
+// ── Tokens (dirección moderna / oscura / premium) ──
+const _bg0 = Color(0xFF070C14);
+const _bg1 = Color(0xFF0C1524);
+const _surf = Color(0xFF111C2E);
+const _surf2 = Color(0xFF16233A);
+const _hi = Color(0xFFEEF4F8);
+const _mid = Color(0xFF9FB0C3);
+const _mute = Color(0xFF6C7C90);
+const _line = Color(0x14FFFFFF);
+const _acc = Color(0xFF25E6A4);
+const _acc2 = Color(0xFF12B98A);
+const _gold = Color(0xFFF4C868);
+const _danger = Color(0xFFFF6B5A);
 
-const _r = 18.0; // radio de tarjeta consistente (Similarity / Prägnanz)
 const _kFavorita = 'favorita';
 const _kDisclaimer = 'disclaimerAck';
-
-// Marca / operador: 3qbic. Repo/correo: confirmar antes de publicar.
 const _titular = '3qbic';
 const _sitio3qbic = 'https://3qbic.com';
-const _repoUrl = 'github.com/3qbic/cuando-pagan';
+const _repoUrl = 'github.com/alexismgarciad/calendario-pago-pa';
 const _contacto = 'cuandopagan@3qbic.com';
-const _mefUrl = 'www.mef.gob.pa/transparencia/calendario-de-pago-del-sector-publico';
 const _mefFullUrl = 'https://www.mef.gob.pa/transparencia/calendario-de-pago-del-sector-publico/';
 
 Future<void> _abrir(String url) async {
@@ -58,17 +56,23 @@ Future<void> _abrir(String url) async {
   if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
-BoxDecoration _card({Color bg = Colors.white, Color? border, bool sombra = false}) => BoxDecoration(
-      color: bg,
-      borderRadius: BorderRadius.circular(_r),
-      border: Border.all(color: border ?? _line),
-      boxShadow: sombra ? const [BoxShadow(color: Color(0x0F0E7C66), blurRadius: 22, offset: Offset(0, 8))] : null,
+BoxDecoration _cardDeco({Color? color, Color? borde, bool glow = false}) => BoxDecoration(
+      gradient: color == null
+          ? const LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0x0DFFFFFF), Color(0x05FFFFFF)])
+          : null,
+      color: color,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: borde ?? _line),
+      boxShadow: glow
+          ? const [BoxShadow(color: Color(0x400CE39A), blurRadius: 40, spreadRadius: -18, offset: Offset(0, 12))]
+          : const [BoxShadow(color: Color(0x66000000), blurRadius: 30, spreadRadius: -20, offset: Offset(0, 14))],
     );
 
 class CuandoPaganApp extends StatelessWidget {
   const CuandoPaganApp({super.key});
   @override
   Widget build(BuildContext context) {
+    final base = ThemeData(brightness: Brightness.dark, useMaterial3: true);
     return MaterialApp(
       title: '¿Cuándo Pagan?',
       debugShowCheckedModeBanner: false,
@@ -79,17 +83,50 @@ class CuandoPaganApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: _accent, brightness: Brightness.light),
-        scaffoldBackgroundColor: _bg,
+      theme: base.copyWith(
+        scaffoldBackgroundColor: _bg0,
+        colorScheme: base.colorScheme.copyWith(primary: _acc, surface: _surf, onSurface: _hi),
+        textTheme: base.textTheme.apply(bodyColor: _hi, displayColor: _hi, fontFamily: 'Roboto'),
       ),
       home: const RootPage(),
     );
   }
 }
 
-// ───────────────────────── Datos ─────────────────────────
+// Fondo con degradado + brillo (premium).
+class _Fondo extends StatelessWidget {
+  const _Fondo({required this.child});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [_bg1, _bg0]),
+      ),
+      child: Stack(children: [
+        const Positioned(top: -120, right: -80, child: _Glow(color: Color(0x3325E6A4), size: 320)),
+        const Positioned(top: -60, left: -100, child: _Glow(color: Color(0x222678FF), size: 300)),
+        child,
+      ]),
+    );
+  }
+}
+
+class _Glow extends StatelessWidget {
+  const _Glow({required this.color, required this.size});
+  final Color color;
+  final double size;
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 40)]),
+        ),
+      );
+}
+
+// ───────────────────────── Datos + lógica ─────────────────────────
 
 class Dataset {
   final Manifest manifest;
@@ -101,8 +138,7 @@ class Dataset {
 
 Future<Dataset> _cargar() async {
   final all = jsonDecode(await rootBundle.loadString('assets/seed/all.json')) as Map<String, dynamic>;
-  final siglas = cargarSiglas(
-      jsonDecode(await rootBundle.loadString('assets/data/siglas_entidades.json')) as Map<String, dynamic>);
+  final siglas = cargarSiglas(jsonDecode(await rootBundle.loadString('assets/data/siglas_entidades.json')) as Map<String, dynamic>);
   final manifest = manifestFromJson(all['manifest'] as Map<String, dynamic>);
   final cal = (all['calendario'] as List).map((e) => entradaFromJson(e as Map<String, dynamic>)).toList();
   final ents = construirEntidades(all['grupos_entidades'] as List, siglas);
@@ -126,26 +162,25 @@ List<Seleccion> _filtrar(String q, List<Seleccion> ops) {
   return ops.where((s) {
     if (s is SeleccionEntidad) {
       final e = s.entidad;
-      return normalizar(e.display).contains(n) ||
-          normalizar(e.nombreWire).contains(n) ||
-          e.siglas.any((x) => normalizar(x).contains(n));
+      return normalizar(e.display).contains(n) || normalizar(e.nombreWire).contains(n) || e.siglas.any((x) => normalizar(x).contains(n));
     }
     return normalizar(s.etiqueta).contains(n);
   }).toList();
 }
 
-/// Pago cuya fecha ya pasó pero dentro de una ventana corta (≤6 días): "ya debió pagarse".
-(EntradaCalendario, int)? _pagoReciente(List<EntradaCalendario> entradas) {
-  final hoy = hoyPanama();
-  final pasadas = entradas.where((e) => e.fechaPagoDate.isBefore(hoy)).toList()
-    ..sort((a, b) => b.fechaPagoDate.compareTo(a.fechaPagoDate));
-  if (pasadas.isEmpty) return null;
-  final r = pasadas.first;
-  final dias = hoy.difference(r.fechaPagoDate).inDays;
-  return dias <= 6 ? (r, dias) : null;
+DateTime? _d(String s) => s.isEmpty ? null : DateTime.parse('${s}T00:00:00Z');
+
+/// Progreso del proceso de pago (0..1) desde inicio_registro hasta fecha_pago.
+double _progreso(EntradaCalendario e, DateTime hoy) {
+  final ini = _d(e.inicioRegistro) ?? e.fechaPagoDate.subtract(const Duration(days: 15));
+  final pago = e.fechaPagoDate;
+  final total = pago.difference(ini).inSeconds;
+  if (total <= 0) return 1;
+  final t = hoy.difference(ini).inSeconds / total;
+  return t.clamp(0.0, 1.0);
 }
 
-// ───────────────────────── Shell ─────────────────────────
+// ───────────────────────── Shell + bottom nav ─────────────────────────
 
 class RootPage extends StatefulWidget {
   const RootPage({super.key});
@@ -158,7 +193,8 @@ class _RootPageState extends State<RootPage> {
   List<Seleccion> _ops = const [];
   Seleccion? _sel;
   bool _cargando = true;
-  bool _disclaimerAck = false;
+  bool _ack = false;
+  int _tab = 0;
 
   @override
   void initState() {
@@ -176,54 +212,61 @@ class _RootPageState extends State<RootPage> {
       _ds = ds;
       _ops = _opciones(ds);
       _sel = token == null ? null : Seleccion.fromToken(token, ds.entidades);
-      _disclaimerAck = ack;
+      _ack = ack;
       _cargando = false;
     });
   }
 
-  Future<void> _aceptarDisclaimer() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kDisclaimer, true);
-    if (mounted) setState(() => _disclaimerAck = true);
-  }
-
   Future<void> _guardar(Seleccion s) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_kFavorita, s.toToken());
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_kFavorita, s.toToken());
     if (mounted) setState(() => _sel = s);
   }
 
   Future<void> _cambiar() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kFavorita);
+    final p = await SharedPreferences.getInstance();
+    await p.remove(_kFavorita);
     if (mounted) setState(() => _sel = null);
+  }
+
+  Future<void> _aceptar() async {
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(_kDisclaimer, true);
+    if (mounted) setState(() => _ack = true);
   }
 
   @override
   Widget build(BuildContext context) {
+    Widget body;
+    bool nav = false;
+    if (_cargando) {
+      body = const Center(child: CircularProgressIndicator(color: _acc));
+    } else if (!_ack) {
+      body = DisclaimerGate(onEntendido: _aceptar);
+    } else if (_sel == null) {
+      body = OnboardingView(ops: _ops, onGuardar: _guardar);
+    } else {
+      nav = true;
+      body = switch (_tab) {
+        1 => CalendarioTab(ds: _ds!, seleccion: _sel!),
+        2 => DecimoTab(ds: _ds!),
+        3 => const AcercaContenido(),
+        _ => HomeTab(ds: _ds!, seleccion: _sel!, onCambiar: _cambiar),
+      };
+    }
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const _Header(),
-                Expanded(
-                  child: _cargando
-                      ? const Center(child: CircularProgressIndicator())
-                      : !_disclaimerAck
-                          ? DisclaimerGate(onEntendido: _aceptarDisclaimer)
-                          : _sel == null
-                              ? OnboardingView(ops: _ops, onGuardar: _guardar)
-                              : HomeView(ds: _ds!, seleccion: _sel!, onCambiar: _cambiar),
-                ),
-              ],
+      body: _Fondo(
+        child: SafeArea(
+          bottom: false,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Column(children: [const _Header(), Expanded(child: body)]),
             ),
           ),
         ),
       ),
+      bottomNavigationBar: nav ? _BottomNav(index: _tab, onTap: (i) => setState(() => _tab = i)) : null,
     );
   }
 }
@@ -233,10 +276,9 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 10, 6, 4),
+      padding: const EdgeInsets.fromLTRB(18, 10, 10, 2),
       child: Row(children: [
-        const Text('¿Cuándo Pagan?',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _ink, letterSpacing: -0.3)),
+        const Text('¿Cuándo Pagan?', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _hi, letterSpacing: -0.3)),
         const Spacer(),
         Semantics(
           button: true,
@@ -245,29 +287,277 @@ class _Header extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AcercaDeScreen())),
             child: Container(
-              constraints: const BoxConstraints(minHeight: 40),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              decoration: BoxDecoration(
-                color: _amberBg,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: _amberLine),
-              ),
+              constraints: const BoxConstraints(minHeight: 34),
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0x1AF4C868), borderRadius: BorderRadius.circular(999), border: Border.all(color: const Color(0x47F4C868))),
               child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.info_outline, size: 13, color: _amber),
+                Icon(Icons.info_outline, size: 13, color: _gold),
                 SizedBox(width: 5),
-                Text('No oficial', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: _amber)),
+                Text('No oficial', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: _gold)),
               ]),
             ),
           ),
         ),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: _ink, size: 22),
-          tooltip: 'Más',
-          onSelected: (v) => Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => v == 'acerca' ? const AcercaDeScreen() : const PrivacidadScreen())),
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'acerca', child: Text('Acerca de')),
-            PopupMenuItem(value: 'privacidad', child: Text('Política de privacidad')),
+        IconButton(
+          icon: const Icon(Icons.more_vert, color: _mid),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AcercaDeScreen())),
+        ),
+      ]),
+    );
+  }
+}
+
+class _BottomNav extends StatelessWidget {
+  const _BottomNav({required this.index, required this.onTap});
+  final int index;
+  final ValueChanged<int> onTap;
+  static const _items = [
+    (Icons.home_rounded, 'Inicio'),
+    (Icons.calendar_month_rounded, 'Calendario'),
+    (Icons.card_giftcard_rounded, 'Décimo'),
+    (Icons.info_outline_rounded, 'Acerca'),
+  ];
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xE60A121E),
+        border: Border(top: BorderSide(color: _line)),
+      ),
+      padding: EdgeInsets.only(top: 10, bottom: 10 + MediaQuery.of(context).padding.bottom),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          for (var i = 0; i < _items.length; i++)
+            InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => onTap(i),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(_items[i].$1, size: 23, color: i == index ? _acc : _mute),
+                  const SizedBox(height: 4),
+                  Text(_items[i].$2, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: i == index ? _acc : _mute)),
+                ]),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ───────────────────────── Home ─────────────────────────
+
+class HomeTab extends StatelessWidget {
+  const HomeTab({required this.ds, required this.seleccion, required this.onCambiar, super.key});
+  final Dataset ds;
+  final Seleccion seleccion;
+  final VoidCallback onCambiar;
+  @override
+  Widget build(BuildContext context) {
+    final entradas = ds.calendario.where((e) => e.categoria == seleccion.categoria).toList();
+    final pago = calcularProximoPago(
+      entradasDeCategoria: entradas, seleccion: seleccion, manifest: ds.manifest, remoteDataVersion: ds.manifest.dataVersion);
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
+      children: [
+        _InstitucionCard(seleccion: seleccion, onCambiar: onCambiar),
+        const SizedBox(height: 14),
+        _HeroCard(pago: pago),
+        if (pago.hayFecha) ...[
+          const SizedBox(height: 14),
+          _ProcesoCard(entrada: pago.entrada!),
+        ],
+      ],
+    );
+  }
+}
+
+class _InstitucionCard extends StatelessWidget {
+  const _InstitucionCard({required this.seleccion, required this.onCambiar});
+  final Seleccion seleccion;
+  final VoidCallback onCambiar;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: _cardDeco(),
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+      child: Row(children: [
+        Container(
+          width: 40, height: 40,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: const LinearGradient(colors: [Color(0x4025E6A4), Color(0x1025E6A4)]),
+            border: Border.all(color: const Color(0x5525E6A4)),
+          ),
+          child: const Icon(Icons.account_balance_rounded, color: _acc, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('MI INSTITUCIÓN', style: TextStyle(fontSize: 10, letterSpacing: 1.3, color: _mute, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 2),
+            Text(seleccion.etiqueta, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: _hi), maxLines: 2),
+            Text(seleccion.categoria.display, style: const TextStyle(fontSize: 12, color: _mid)),
+          ]),
+        ),
+        TextButton(
+          onPressed: onCambiar,
+          style: TextButton.styleFrom(foregroundColor: _acc, backgroundColor: const Color(0x1425E6A4), minimumSize: const Size(0, 44),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11))),
+          child: const Text('Cambiar', style: TextStyle(fontWeight: FontWeight.w600)),
+        ),
+      ]),
+    );
+  }
+}
+
+class _HeroCard extends StatelessWidget {
+  const _HeroCard({required this.pago});
+  final ProximoPago pago;
+  @override
+  Widget build(BuildContext context) {
+    if (!pago.hayFecha) return _pendiente(context);
+    final e = pago.entrada!;
+    final f = e.fechaPagoDate;
+    final prog = _progreso(e, hoyPanama());
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF16273C), Color(0xFF0F1B2C)]),
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0x2E25E6A4)),
+        boxShadow: const [BoxShadow(color: Color(0x59000000), blurRadius: 40, spreadRadius: -18, offset: Offset(0, 16))],
+      ),
+      padding: const EdgeInsets.all(22),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('PRÓXIMO PAGO', style: TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        Row(children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${f.day}', style: const TextStyle(fontSize: 58, height: .9, fontWeight: FontWeight.w800, color: _hi, letterSpacing: -2)),
+              Text('de ${DateFormat('MMMM', 'es').format(f)}', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600, color: _hi)),
+              Text(DateFormat('EEEE', 'es').format(f), style: const TextStyle(fontSize: 13.5, color: _mid)),
+            ]),
+          ),
+          _Ring(dias: pago.diasRestantes, progreso: prog),
+        ]),
+        const SizedBox(height: 18),
+        Row(children: [
+          _EstadoBadge(estado: pago.estado),
+          const Spacer(),
+          InkWell(
+            onTap: () => _abrir(_mefFullUrl),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Text('Fuente pública: MEF', style: TextStyle(fontSize: 12, color: _mid, fontWeight: FontWeight.w600)),
+              SizedBox(width: 4),
+              Icon(Icons.north_east, size: 12, color: _mid),
+            ]),
+          ),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _pendiente(BuildContext context) {
+    return Container(
+      decoration: _cardDeco(),
+      padding: const EdgeInsets.all(22),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('PRÓXIMO PAGO', style: TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 14),
+        _EstadoBadge(estado: pago.estado),
+        const SizedBox(height: 12),
+        const Text('El MEF aún no publica este período.', style: TextStyle(fontSize: 17, color: _hi, height: 1.4)),
+        const SizedBox(height: 8),
+        const Text('Fuente pública: MEF · App no oficial', style: TextStyle(fontSize: 12, color: _mid)),
+      ]),
+    );
+  }
+}
+
+class _Ring extends StatelessWidget {
+  const _Ring({required this.dias, required this.progreso});
+  final int dias;
+  final double progreso;
+  @override
+  Widget build(BuildContext context) {
+    final txt = dias <= 0 ? 'HOY' : '$dias';
+    return SizedBox(
+      width: 116, height: 116,
+      child: Stack(alignment: Alignment.center, children: [
+        CustomPaint(size: const Size(116, 116), painter: _RingPainter(progreso)),
+        Container(
+          width: 92, height: 92,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Color(0xFF182A40), Color(0xFF0E1929)]),
+          ),
+          child: Center(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(txt, style: TextStyle(fontSize: dias <= 0 ? 26 : 36, fontWeight: FontWeight.w800, color: Colors.white, height: 1)),
+              if (dias > 0) const Text('DÍAS', style: TextStyle(fontSize: 10, color: _mid, letterSpacing: .5)),
+            ]),
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  _RingPainter(this.p);
+  final double p;
+  @override
+  void paint(Canvas canvas, Size size) {
+    final c = size.center(Offset.zero);
+    final r = size.width / 2 - 6;
+    final bg = Paint()..style = PaintingStyle.stroke..strokeWidth = 11..color = const Color(0x18FFFFFF);
+    canvas.drawCircle(c, r, bg);
+    final fg = Paint()
+      ..style = PaintingStyle.stroke..strokeWidth = 11..strokeCap = StrokeCap.round
+      ..shader = const SweepGradient(colors: [_acc2, _acc]).createShader(Rect.fromCircle(center: c, radius: r));
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r), -math.pi / 2, 2 * math.pi * p.clamp(0.02, 1.0), false, fg);
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) => old.p != p;
+}
+
+class _ProcesoCard extends StatelessWidget {
+  const _ProcesoCard({required this.entrada});
+  final EntradaCalendario entrada;
+  @override
+  Widget build(BuildContext context) {
+    final hoy = hoyPanama();
+    final pasos = <(String, DateTime?)>[
+      ('Registro', _d(entrada.inicioRegistro)),
+      ('Cierre', _d(entrada.cierreRegistro)),
+      ('Proceso ACH', _d(entrada.retencionAch)),
+      ('Pago', entrada.fechaPagoDate),
+    ];
+    int actual = pasos.indexWhere((s) => s.$2 != null && hoy.isBefore(s.$2!));
+    if (actual < 0) actual = pasos.length - 1;
+    return Container(
+      decoration: _cardDeco(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('PROCESO DEL PAGO', style: TextStyle(fontSize: 10.5, letterSpacing: 1.4, color: _mute, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 18),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (var i = 0; i < pasos.length; i++) ...[
+              _Paso(
+                label: pasos[i].$1,
+                fecha: pasos[i].$2 == null ? '' : DateFormat('d MMM', 'es').format(pasos[i].$2!),
+                done: i < actual,
+                now: i == actual,
+              ),
+              if (i < pasos.length - 1)
+                Expanded(child: Container(height: 2, margin: const EdgeInsets.only(top: 10), color: i < actual ? _acc : const Color(0x18FFFFFF))),
+            ],
           ],
         ),
       ]),
@@ -275,55 +565,151 @@ class _Header extends StatelessWidget {
   }
 }
 
-// Disclaimer-first bloqueante (Definition of Done) — primer uso.
-class DisclaimerGate extends StatelessWidget {
-  const DisclaimerGate({required this.onEntendido, super.key});
-  final VoidCallback onEntendido;
+class _Paso extends StatelessWidget {
+  const _Paso({required this.label, required this.fecha, required this.done, required this.now});
+  final String label;
+  final String fecha;
+  final bool done;
+  final bool now;
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-      children: [
+    final Color dotBg = done ? _acc : (now ? const Color(0xFF0E1929) : _surf2);
+    return SizedBox(
+      width: 62,
+      child: Column(children: [
         Container(
-          padding: const EdgeInsets.all(22),
-          decoration: _card(sombra: true),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(color: _amberBg, shape: BoxShape.circle, border: Border.all(color: _amberLine)),
-              child: const Icon(Icons.info_outline, color: _amber, size: 24),
-            ),
-            const SizedBox(height: 16),
-            const Text('App independiente y no oficial',
-                style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: _ink, height: 1.2)),
-            const SizedBox(height: 10),
-            const Text(
-              'No representa al Gobierno de Panamá ni al MEF. Muestra fechas que el MEF publica en sus '
-              'canales oficiales, para consultarlas más fácil. Las fechas son referenciales; no tramitamos '
-              'ni resolvemos pagos.',
-              style: TextStyle(fontSize: 14.5, color: Color(0xFF3F4A46), height: 1.5),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              height: 52,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                    backgroundColor: _accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                onPressed: onEntendido,
-                child: const Text('Entendido', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: TextButton(
-                onPressed: () =>
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen())),
-                child: const Text('Ver política de privacidad'),
-              ),
-            ),
-          ]),
+          width: 22, height: 22,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: dotBg,
+            border: Border.all(color: done ? Colors.transparent : (now ? _acc : const Color(0x24FFFFFF)), width: 2),
+            boxShadow: (done || now) ? const [BoxShadow(color: Color(0x8025E6A4), blurRadius: 12, spreadRadius: -3)] : null,
+          ),
+          child: done ? const Icon(Icons.check, size: 13, color: Color(0xFF0A150F)) : (now ? const Center(child: _Dot()) : null),
         ),
+        const SizedBox(height: 7),
+        Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, height: 1.2, color: now ? _hi : _mid, fontWeight: now ? FontWeight.w700 : FontWeight.w500)),
+        Text(fecha, style: const TextStyle(fontSize: 10.5, color: _mute)),
+      ]),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot();
+  @override
+  Widget build(BuildContext context) => Container(width: 7, height: 7, decoration: const BoxDecoration(shape: BoxShape.circle, color: _acc));
+}
+
+class _EstadoBadge extends StatelessWidget {
+  const _EstadoBadge({required this.estado});
+  final EstadoFecha estado;
+  @override
+  Widget build(BuildContext context) {
+    final (icon, label, c1, c2) = switch (estado) {
+      EstadoFecha.publicada => (Icons.check_circle, 'Publicada', const Color(0xFF3BF0B4), _acc2),
+      EstadoFecha.modificada => (Icons.edit, 'Modificada', _gold, const Color(0xFFCF9B2E)),
+      EstadoFecha.pendiente => (Icons.schedule, 'Pendiente', const Color(0xFFB6C2D0), _mute),
+      EstadoFecha.desactualizada => (Icons.warning_amber_rounded, 'Desactualizada', const Color(0xFFFF8E80), _danger),
+      EstadoFecha.estimada => (Icons.timelapse, 'Estimada', const Color(0xFF9BB4E8), const Color(0xFF5C79C4)),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        gradient: LinearGradient(colors: [c1, c2]),
+        boxShadow: [BoxShadow(color: c2.withValues(alpha: .5), blurRadius: 14, spreadRadius: -5)],
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 14, color: const Color(0xFF07130C)),
+        const SizedBox(width: 5),
+        Text(label, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Color(0xFF07130C))),
+      ]),
+    );
+  }
+}
+
+// ───────────────────────── Calendario tab ─────────────────────────
+
+class CalendarioTab extends StatelessWidget {
+  const CalendarioTab({required this.ds, required this.seleccion, super.key});
+  final Dataset ds;
+  final Seleccion seleccion;
+  @override
+  Widget build(BuildContext context) {
+    final hoy = hoyPanama();
+    final fechas = ds.calendario.where((e) => e.categoria == seleccion.categoria).toList()
+      ..sort((a, b) => a.fechaPagoDate.compareTo(b.fechaPagoDate));
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+      children: [
+        Text('Calendario ${ds.manifest.semestres.isNotEmpty ? "2026" : ""}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi)),
+        Text('${seleccion.etiqueta} · ${seleccion.categoria.display}', style: const TextStyle(fontSize: 13, color: _mid)),
+        const SizedBox(height: 14),
+        for (final e in fechas)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: _cardDeco(),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(children: [
+              Container(
+                width: 46, height: 46,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: _surf2, border: Border.all(color: _line)),
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text('${e.fechaPagoDate.day}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _hi, height: 1)),
+                  Text(DateFormat('MMM', 'es').format(e.fechaPagoDate), style: const TextStyle(fontSize: 10, color: _mid)),
+                ]),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(DateFormat("EEEE d 'de' MMMM", 'es').format(e.fechaPagoDate),
+                    style: TextStyle(fontSize: 14.5, color: e.fechaPagoDate.isBefore(hoy) ? _mute : _hi, fontWeight: FontWeight.w600)),
+              ),
+              Text('Q${e.quincena}', style: const TextStyle(fontSize: 12, color: _mid)),
+            ]),
+          ),
+      ],
+    );
+  }
+}
+
+// ───────────────────────── Décimo tab ─────────────────────────
+
+class DecimoTab extends StatelessWidget {
+  const DecimoTab({required this.ds, super.key});
+  final Dataset ds;
+  @override
+  Widget build(BuildContext context) {
+    final hoy = hoyPanama();
+    final idxProx = ds.xiii.indexWhere((x) => !x.fechaDate.isBefore(hoy));
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
+      children: [
+        const Text('Décimo Tercer Mes', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi)),
+        const Text('Las 3 fechas del XIII según el calendario del MEF.', style: TextStyle(fontSize: 13, color: _mid)),
+        const SizedBox(height: 14),
+        for (var i = 0; i < ds.xiii.length; i++)
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: i == idxProx ? _cardDeco(borde: const Color(0x3325E6A4), glow: true) : _cardDeco(),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(children: [
+              Icon(Icons.card_giftcard_rounded, color: ds.xiii[i].fechaDate.isBefore(hoy) ? _mute : _acc, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(DateFormat("d 'de' MMMM 'de' y", 'es').format(ds.xiii[i].fechaDate),
+                    style: TextStyle(fontSize: 15.5, color: ds.xiii[i].fechaDate.isBefore(hoy) ? _mute : _hi, fontWeight: i == idxProx ? FontWeight.w700 : FontWeight.w500)),
+              ),
+              if (i == idxProx)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0x1F25E6A4), borderRadius: BorderRadius.circular(999)),
+                  child: const Text('Próximo', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _acc)),
+                ),
+            ]),
+          ),
+        const SizedBox(height: 6),
+        const Text('Fechas del décimo según el calendario del MEF · App no oficial', style: TextStyle(fontSize: 11.5, color: _mute)),
       ],
     );
   }
@@ -342,92 +728,73 @@ class OnboardingView extends StatefulWidget {
 class _OnboardingViewState extends State<OnboardingView> {
   String _q = '';
   Seleccion? _cand;
-
   @override
   Widget build(BuildContext context) {
     if (_cand != null) return _confirmacion(context, _cand!);
     final res = _filtrar(_q, widget.ops);
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 32),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
       children: [
-        const Text('¿En qué institución trabajas?',
-            style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: _ink, height: 1.15)),
+        const Text('¿En qué institución trabajas?', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: _hi, height: 1.15)),
         const SizedBox(height: 6),
-        const Text('Escribe el nombre o la sigla (ej. MIDES, MEDUCA). El calendario cubre el Gobierno Central.',
-            style: TextStyle(fontSize: 13.5, color: _muted, height: 1.45)),
-        const SizedBox(height: 18),
+        const Text('Escribe el nombre o la sigla (ej. MIDES, MEDUCA). El calendario cubre el Gobierno Central.', style: TextStyle(fontSize: 13.5, color: _mid, height: 1.45)),
+        const SizedBox(height: 16),
         TextField(
           autofocus: true,
+          style: const TextStyle(color: _hi),
           onChanged: (v) => setState(() => _q = v),
           decoration: InputDecoration(
             hintText: 'Buscar tu institución…',
-            prefixIcon: const Icon(Icons.search, color: _accent),
+            hintStyle: const TextStyle(color: _mute),
+            prefixIcon: const Icon(Icons.search, color: _acc),
             filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 16),
+            fillColor: _surf,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _accent, width: 1.6)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _acc, width: 1.6)),
           ),
         ),
         const SizedBox(height: 16),
-        if (_q.trim().isNotEmpty && res.isEmpty)
-          const _NoCubierta()
-        else
-          ...res.map((s) => _ItemInstitucion(sel: s, onTap: () => setState(() => _cand = s))),
+        if (_q.trim().isNotEmpty && res.isEmpty) const _NoCubierta() else ...res.map((s) => _ItemInstitucion(sel: s, onTap: () => setState(() => _cand = s))),
       ],
     );
   }
 
   Widget _confirmacion(BuildContext context, Seleccion s) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: _card(sombra: true),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: const BoxDecoration(color: _accentSoft, shape: BoxShape.circle),
-              child: const Icon(Icons.check_rounded, color: _accent, size: 26),
+    return ListView(padding: const EdgeInsets.fromLTRB(18, 28, 18, 24), children: [
+      Container(
+        decoration: _cardDeco(glow: true),
+        padding: const EdgeInsets.all(22),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 46, height: 46, decoration: const BoxDecoration(color: Color(0x2625E6A4), shape: BoxShape.circle), child: const Icon(Icons.check_rounded, color: _acc, size: 26)),
+          const SizedBox(height: 16),
+          const Text('¡Todo en orden!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _hi)),
+          const SizedBox(height: 4),
+          const Text('Tu institución está en el calendario del MEF.', style: TextStyle(fontSize: 14, color: _mid)),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: _surf2, borderRadius: BorderRadius.circular(12)),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(s.etiqueta, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _hi)),
+              Text(s.categoria.display, style: const TextStyle(fontSize: 13, color: _mid)),
+            ]),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: _acc, foregroundColor: const Color(0xFF07130C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+              onPressed: () => widget.onGuardar(s),
+              icon: const Icon(Icons.bookmark_added_outlined, size: 19),
+              label: const Text('Guardar y ver mis pagos', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
-            const SizedBox(height: 16),
-            const Text('¡Todo en orden!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _ink)),
-            const SizedBox(height: 4),
-            const Text('Tu institución está en el calendario del MEF.',
-                style: TextStyle(fontSize: 14, color: _muted)),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: _bg, borderRadius: BorderRadius.circular(12)),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(s.etiqueta, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _ink)),
-                const SizedBox(height: 2),
-                Text(s.categoria.display, style: const TextStyle(fontSize: 13, color: _muted)),
-              ]),
-            ),
-            const SizedBox(height: 18),
-            SizedBox(
-              height: 52,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                    backgroundColor: _accent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                onPressed: () => widget.onGuardar(s),
-                icon: const Icon(Icons.bookmark_added_outlined, size: 19),
-                label: const Text('Guardar y ver mis pagos', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Center(child: TextButton(onPressed: () => setState(() => _cand = null), child: const Text('Elegir otra'))),
-            const SizedBox(height: 2),
-            const Text('La guardamos solo en tu teléfono. Puedes cambiarla cuando quieras.',
-                style: TextStyle(fontSize: 11.5, color: Color(0xFF9AA39F), height: 1.4)),
-          ]),
-        ),
-      ],
-    );
+          ),
+          const SizedBox(height: 6),
+          Center(child: TextButton(onPressed: () => setState(() => _cand = null), child: const Text('Elegir otra', style: TextStyle(color: _acc)))),
+        ]),
+      ),
+    ]);
   }
 }
 
@@ -437,33 +804,25 @@ class _ItemInstitucion extends StatelessWidget {
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) {
-    final sigla = sel is SeleccionEntidad && (sel as SeleccionEntidad).entidad.siglas.isNotEmpty
-        ? (sel as SeleccionEntidad).entidad.siglas.first
-        : null;
+    final sigla = sel is SeleccionEntidad && (sel as SeleccionEntidad).entidad.siglas.isNotEmpty ? (sel as SeleccionEntidad).entidad.siglas.first : null;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.white,
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 52),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: _line)),
-            child: Row(children: [
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                  Text(sel.etiqueta, style: const TextStyle(fontSize: 15.5, color: _ink, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 2),
-                  Text('${sel.categoria.display}${sigla != null ? ' · $sigla' : ''}',
-                      style: const TextStyle(fontSize: 12.5, color: _muted)),
-                ]),
-              ),
-              const Icon(Icons.chevron_right, color: Color(0xFFB8C0BC)),
-            ]),
-          ),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 52),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: _cardDeco(),
+          child: Row(children: [
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text(sel.etiqueta, style: const TextStyle(fontSize: 15.5, color: _hi, fontWeight: FontWeight.w500)),
+                Text('${sel.categoria.display}${sigla != null ? ' · $sigla' : ''}', style: const TextStyle(fontSize: 12.5, color: _mute)),
+              ]),
+            ),
+            const Icon(Icons.chevron_right, color: _mute),
+          ]),
         ),
       ),
     );
@@ -474,527 +833,140 @@ class _NoCubierta extends StatelessWidget {
   const _NoCubierta();
   @override
   Widget build(BuildContext context) {
-    return _AvisoAmber(
-      titulo: 'No la encontramos en el calendario del MEF',
-      cuerpo: 'El calendario publicado cubre las entidades del Gobierno Central. No incluye municipios '
-          'ni algunas entidades descentralizadas. Revisa el nombre o la sigla; si tu institución no '
-          'aparece, su pago no sale en esta fuente.',
-      icono: Icons.help_outline,
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: const Color(0x14F4C868), borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0x33F4C868))),
+      child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [Icon(Icons.help_outline, size: 18, color: _gold), SizedBox(width: 8), Expanded(child: Text('No la encontramos en el calendario del MEF', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: _gold)))]),
+        SizedBox(height: 8),
+        Text('El calendario publicado cubre las entidades del Gobierno Central. No incluye municipios ni algunas entidades descentralizadas. Revisa el nombre o la sigla.', style: TextStyle(fontSize: 13, color: Color(0xFFD9C79A), height: 1.45)),
+      ]),
     );
   }
 }
 
-// ───────────────────────── Home ─────────────────────────
+// ───────────────────────── Disclaimer ─────────────────────────
 
-class HomeView extends StatefulWidget {
-  const HomeView({required this.ds, required this.seleccion, required this.onCambiar, super.key});
-  final Dataset ds;
-  final Seleccion seleccion;
-  final VoidCallback onCambiar;
-  @override
-  State<HomeView> createState() => _HomeViewState();
-}
-
-class _HomeViewState extends State<HomeView> {
-  bool _verXiii = false;
-
+class DisclaimerGate extends StatelessWidget {
+  const DisclaimerGate({required this.onEntendido, super.key});
+  final VoidCallback onEntendido;
   @override
   Widget build(BuildContext context) {
-    final ds = widget.ds;
-    final entradas = ds.calendario.where((e) => e.categoria == widget.seleccion.categoria).toList();
-    final pago = calcularProximoPago(
-      entradasDeCategoria: entradas,
-      seleccion: widget.seleccion,
-      manifest: ds.manifest,
-      remoteDataVersion: ds.manifest.dataVersion,
-    );
-    final reciente = _pagoReciente(entradas);
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 6, 20, 32),
-      children: [
-        _BarraInstitucion(seleccion: widget.seleccion, onCambiar: widget.onCambiar),
-        const SizedBox(height: 12),
-        if (reciente != null) ...[
-          _AvisoPagoReciente(entrada: reciente.$1, diasAtras: reciente.$2),
-          const SizedBox(height: 12),
-        ],
-        _Hero(pago: pago),
-        const SizedBox(height: 12),
-        _BotonXiii(abierto: _verXiii, onTap: () => setState(() => _verXiii = !_verXiii)),
-        if (_verXiii) ...[
+    return ListView(padding: const EdgeInsets.fromLTRB(18, 24, 18, 24), children: [
+      Container(
+        decoration: _cardDeco(glow: true),
+        padding: const EdgeInsets.all(22),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(width: 46, height: 46, decoration: const BoxDecoration(color: Color(0x1AF4C868), shape: BoxShape.circle), child: const Icon(Icons.info_outline, color: _gold, size: 24)),
+          const SizedBox(height: 16),
+          const Text('App independiente y no oficial', style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: _hi, height: 1.2)),
           const SizedBox(height: 10),
-          _CardXiii(xiii: ds.xiii),
-        ],
-        const SizedBox(height: 18),
-        _PieLegal(manifest: ds.manifest),
-      ],
-    );
-  }
-}
-
-class _BarraInstitucion extends StatelessWidget {
-  const _BarraInstitucion({required this.seleccion, required this.onCambiar});
-  final Seleccion seleccion;
-  final VoidCallback onCambiar;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: _card(),
-      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-      child: Row(children: [
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('MI INSTITUCIÓN',
-                style: TextStyle(fontSize: 10.5, letterSpacing: 1.1, fontWeight: FontWeight.w700, color: _muted)),
-            const SizedBox(height: 3),
-            Text(seleccion.etiqueta,
-                style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700, color: _ink), maxLines: 2),
-            Text(seleccion.categoria.display, style: const TextStyle(fontSize: 12.5, color: _muted)),
-          ]),
-        ),
-        const SizedBox(width: 6),
-        InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: onCambiar,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 48, minWidth: 48),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: const Row(mainAxisSize: MainAxisSize.min, children: [
-              Icon(Icons.swap_horiz, size: 18, color: _accent),
-              SizedBox(width: 4),
-              Text('Cambiar', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: _accent)),
-            ]),
-          ),
-        ),
-      ]),
-    );
-  }
-}
-
-class _Hero extends StatelessWidget {
-  const _Hero({required this.pago});
-  final ProximoPago pago;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: _card(bg: _heroTint, border: const Color(0x330E7C66), sombra: true),
-      child: pago.hayFecha ? _conFecha() : _pendiente(),
-    );
-  }
-
-  Widget _conFecha() {
-    final f = pago.entrada!.fechaPagoDate;
-    final mes = DateFormat('MMMM', 'es').format(f);
-    final diaSemana = DateFormat('EEEE', 'es').format(f);
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('PRÓXIMO PAGO',
-          style: TextStyle(fontSize: 11.5, letterSpacing: 1.5, fontWeight: FontWeight.w800, color: _accent)),
-      const SizedBox(height: 12),
-      Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-        Text('${f.day}', style: const TextStyle(fontSize: 76, height: 0.9, fontWeight: FontWeight.w800, color: _ink)),
-        const SizedBox(width: 14),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-          Text('de $mes', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w700, color: _ink)),
-          Text(diaSemana, style: const TextStyle(fontSize: 15, color: _muted)),
-        ]),
-      ]),
-      const SizedBox(height: 16),
-      _Contador(dias: pago.diasRestantes),
-      const SizedBox(height: 18),
-      Row(children: [
-        _EstadoChip(estado: pago.estado),
-        const Spacer(),
-        InkWell(
-          onTap: () => _abrir(_mefFullUrl),
-          borderRadius: BorderRadius.circular(8),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              Text('Fuente pública: MEF', style: TextStyle(fontSize: 12.5, color: _accent, fontWeight: FontWeight.w600)),
-              SizedBox(width: 3),
-              Icon(Icons.open_in_new, size: 13, color: _accent),
-            ]),
-          ),
-        ),
-      ]),
-    ]);
-  }
-
-  Widget _pendiente() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('PRÓXIMO PAGO',
-          style: TextStyle(fontSize: 11.5, letterSpacing: 1.5, fontWeight: FontWeight.w800, color: _accent)),
-      const SizedBox(height: 14),
-      _EstadoChip(estado: pago.estado),
-      const SizedBox(height: 12),
-      const Text('El MEF aún no publica este período.', style: TextStyle(fontSize: 17, color: _ink, height: 1.4)),
-      const SizedBox(height: 10),
-      const Text('Fuente pública: MEF · App no oficial', style: TextStyle(fontSize: 12.5, color: _muted)),
-    ]);
-  }
-}
-
-class _Contador extends StatelessWidget {
-  const _Contador({required this.dias});
-  final int dias;
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(color: _accentSoft, borderRadius: BorderRadius.circular(10)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.schedule, size: 17, color: _accent),
-        const SizedBox(width: 7),
-        Text(etiquetaContador(dias),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: _accent)),
-      ]),
-    );
-  }
-}
-
-class _EstadoChip extends StatelessWidget {
-  const _EstadoChip({required this.estado});
-  final EstadoFecha estado;
-  @override
-  Widget build(BuildContext context) {
-    final (icon, label, color) = switch (estado) {
-      EstadoFecha.publicada => (Icons.check_circle_outline, 'Publicada', const Color(0xFF1E7A4D)),
-      EstadoFecha.modificada => (Icons.edit_outlined, 'Modificada', const Color(0xFF9A6400)),
-      EstadoFecha.pendiente => (Icons.schedule_outlined, 'Pendiente', _muted),
-      EstadoFecha.desactualizada => (Icons.warning_amber_outlined, 'Desactualizada', const Color(0xFFC13D26)),
-      EstadoFecha.estimada => (Icons.timelapse_outlined, 'Estimada', const Color(0xFF3F5688)),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), border: Border.all(color: color)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 15, color: color),
-        const SizedBox(width: 5),
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color)),
-      ]),
-    );
-  }
-}
-
-// Aviso contextual (barra de acento a la izquierda) — no "banner".
-class _AvisoPagoReciente extends StatelessWidget {
-  const _AvisoPagoReciente({required this.entrada, required this.diasAtras});
-  final EntradaCalendario entrada;
-  final int diasAtras;
-  @override
-  Widget build(BuildContext context) {
-    final fecha = DateFormat("d 'de' MMMM", 'es').format(entrada.fechaPagoDate);
-    final cuando = diasAtras == 0 ? 'hoy' : (diasAtras == 1 ? 'ayer' : 'hace $diasAtras días');
-    return _AvisoAmber(
-      titulo: 'Tu pago estaba programado para el $fecha ($cuando)',
-      cuerpo: 'Según el calendario del MEF debió realizarse en esa fecha. Las fechas son referenciales: '
-          'si aún no lo recibes, el depósito puede tardar o variar — verifica con tu institución o en el sitio del MEF.',
-      icono: Icons.history,
-    );
-  }
-}
-
-class _AvisoAmber extends StatelessWidget {
-  const _AvisoAmber({required this.titulo, required this.cuerpo, required this.icono});
-  final String titulo;
-  final String cuerpo;
-  final IconData icono;
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: IntrinsicHeight(
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Container(width: 4, color: _amber),
-          Expanded(
-            child: Container(
-              color: _amberBg,
-              padding: const EdgeInsets.all(16),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Icon(icono, size: 18, color: _amber),
-                  const SizedBox(width: 8),
-                  Expanded(
-                      child: Text(titulo,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: _amber, height: 1.3))),
-                ]),
-                const SizedBox(height: 7),
-                Text(cuerpo, style: const TextStyle(fontSize: 12.8, color: Color(0xFF7A5A2A), height: 1.45)),
-              ]),
+          const Text('No representa al Gobierno de Panamá ni al MEF. Muestra fechas que el MEF publica en sus canales oficiales, para consultarlas más fácil. Las fechas son referenciales; no tramitamos ni resolvemos pagos.', style: TextStyle(fontSize: 14.5, color: _mid, height: 1.5)),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 52,
+            child: FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: _acc, foregroundColor: const Color(0xFF07130C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+              onPressed: onEntendido,
+              child: const Text('Entendido', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
           ),
+          const SizedBox(height: 8),
+          Center(child: TextButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen())), child: const Text('Ver política de privacidad', style: TextStyle(color: _acc)))),
         ]),
       ),
-    );
-  }
-}
-
-class _BotonXiii extends StatelessWidget {
-  const _BotonXiii({required this.abierto, required this.onTap});
-  final bool abierto;
-  final VoidCallback onTap;
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(_r),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(_r),
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 54),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: _card(),
-          child: Row(children: [
-            const Icon(Icons.card_giftcard_outlined, color: _accent, size: 20),
-            const SizedBox(width: 10),
-            const Expanded(
-                child: Text('¿Cuándo pagan el décimo (XIII)?',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: _ink))),
-            Icon(abierto ? Icons.expand_less : Icons.expand_more, color: _muted),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
-class _CardXiii extends StatelessWidget {
-  const _CardXiii({required this.xiii});
-  final List<XiiiMes> xiii;
-  @override
-  Widget build(BuildContext context) {
-    final hoy = hoyPanama();
-    final idxProximo = xiii.indexWhere((x) => !x.fechaDate.isBefore(hoy));
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: _card(),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('DÉCIMO TERCER MES (XIII)',
-            style: TextStyle(fontSize: 10.5, letterSpacing: 1.1, fontWeight: FontWeight.w700, color: _accent)),
-        const SizedBox(height: 12),
-        for (var i = 0; i < xiii.length; i++) _fila(xiii[i], esProximo: i == idxProximo, pasado: xiii[i].fechaDate.isBefore(hoy)),
-        const SizedBox(height: 4),
-        const Text('Fechas del décimo según el calendario del MEF · App no oficial',
-            style: TextStyle(fontSize: 11.5, color: _muted)),
-      ]),
-    );
-  }
-
-  Widget _fila(XiiiMes x, {required bool esProximo, required bool pasado}) {
-    final f = DateFormat("d 'de' MMMM 'de' y", 'es').format(x.fechaDate);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(children: [
-        Icon(Icons.event, size: 18, color: pasado ? const Color(0xFFB8C0BC) : _accent),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(f,
-              style: TextStyle(
-                  fontSize: 15,
-                  color: pasado ? _muted : _ink,
-                  fontWeight: esProximo ? FontWeight.w700 : FontWeight.w400)),
-        ),
-        if (esProximo)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-            decoration: BoxDecoration(color: _accentSoft, borderRadius: BorderRadius.circular(999)),
-            child: const Text('Próximo', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: _accent)),
-          ),
-      ]),
-    );
-  }
-}
-
-class _PieLegal extends StatelessWidget {
-  const _PieLegal({required this.manifest});
-  final Manifest manifest;
-  void _ir(BuildContext c, Widget s) => Navigator.of(c).push(MaterialPageRoute(builder: (_) => s));
-  @override
-  Widget build(BuildContext context) {
-    const muteStyle = TextStyle(fontSize: 11.5, color: Color(0xFF9AA39F), height: 1.45);
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(
-        'Datos del ${manifest.fechaPublicacion} · ${manifest.totalFilas} fechas. '
-        'Fuente pública: MEF · App no afiliada. La información oficial y vinculante es la del MEF.',
-        style: muteStyle,
-      ),
-      const SizedBox(height: 10),
-      const Divider(height: 1, color: _line),
-      const SizedBox(height: 10),
-      const Text('© 2026 3qbic · ¿Cuándo Pagan? · Proyecto independiente y de código abierto.', style: muteStyle),
-      const SizedBox(height: 6),
-      Row(children: [
-        TextButton(
-          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4), minimumSize: const Size(0, 40)),
-          onPressed: () => _ir(context, const AcercaDeScreen()),
-          child: const Text('Acerca de', style: TextStyle(fontSize: 12.5, color: _accent)),
-        ),
-        const Text('·', style: muteStyle),
-        TextButton(
-          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4), minimumSize: const Size(0, 40)),
-          onPressed: () => _ir(context, const PrivacidadScreen()),
-          child: const Text('Política de privacidad', style: TextStyle(fontSize: 12.5, color: _accent)),
-        ),
-      ]),
     ]);
   }
 }
 
-// Sección de texto reutilizable para pantallas legales.
-Widget _seccion(String titulo, String cuerpo) => Padding(
+// ───────────────────────── Acerca de / Privacidad ─────────────────────────
+
+Widget _seccion(String t, String c) => Padding(
       padding: const EdgeInsets.only(bottom: 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(titulo, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: _ink)),
+        Text(t, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: _hi)),
         const SizedBox(height: 6),
-        Text(cuerpo, style: const TextStyle(fontSize: 14, color: Color(0xFF3F4A46), height: 1.5)),
+        Text(c, style: const TextStyle(fontSize: 14, color: _mid, height: 1.5)),
       ]),
     );
 
 Widget _enlace(BuildContext context, IconData icon, String texto, VoidCallback onTap) => Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: Colors.white,
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: onTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 52),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: _line)),
-            child: Row(children: [
-              Icon(icon, size: 18, color: _accent),
-              const SizedBox(width: 12),
-              Expanded(child: Text(texto, style: const TextStyle(fontSize: 14.5, color: _ink))),
-              const Icon(Icons.chevron_right, color: Color(0xFFB8C0BC)),
-            ]),
-          ),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 52),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: _cardDeco(),
+          child: Row(children: [
+            Icon(icon, size: 18, color: _acc),
+            const SizedBox(width: 12),
+            Expanded(child: Text(texto, style: const TextStyle(fontSize: 14.5, color: _hi))),
+            const Icon(Icons.chevron_right, color: _mute),
+          ]),
         ),
       ),
     );
 
-Scaffold _pantallaLegal(BuildContext context, String titulo, List<Widget> hijos) => Scaffold(
-      backgroundColor: _bg,
-      appBar: AppBar(
-        backgroundColor: _bg,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: _ink,
-        title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: ListView(padding: const EdgeInsets.fromLTRB(20, 8, 20, 40), children: hijos),
-          ),
-        ),
-      ),
-    );
+class AcercaContenido extends StatelessWidget {
+  const AcercaContenido({super.key});
+  @override
+  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: _acercaHijos(context));
+}
 
 class AcercaDeScreen extends StatelessWidget {
   const AcercaDeScreen({super.key});
   @override
-  Widget build(BuildContext context) {
-    return _pantallaLegal(context, 'Acerca de', [
-      const Text('App independiente y no oficial',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _ink, height: 1.15)),
+  Widget build(BuildContext context) => _legalScaffold(context, 'Acerca de', _acercaHijos(context));
+}
+
+List<Widget> _acercaHijos(BuildContext context) => [
+      const Text('App independiente y no oficial', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi, height: 1.15)),
       const SizedBox(height: 14),
-      _seccion('Qué es',
-          '«¿Cuándo Pagan?» es un proyecto independiente, gratuito y de código abierto que te muestra de '
-          'forma rápida y clara las fechas de pago del sector público de Panamá: jubilados, gastos de '
-          'representación y grupos 1, 2 y 3.'),
-      _seccion('Qué NO es',
-          'No es una app oficial del Gobierno de Panamá. No está afiliada, patrocinada ni avalada por el '
-          'Ministerio de Economía y Finanzas (MEF) ni por ninguna entidad del Estado. No tramita ni '
-          'resuelve pagos: para eso, contacta a tu entidad o al MEF.'),
-      _seccion('De dónde salen las fechas',
-          'Las fechas se transcriben de lo que el MEF publica en sus canales oficiales. Solo mostramos lo ya '
-          'publicado; los períodos que el MEF aún no publica aparecen como “Pendiente”. Cada fecha muestra su '
-          'estado (Publicada, Modificada o Desactualizada). Las fechas son referenciales; ante cualquier '
-          'diferencia, prevalece la publicación oficial del MEF.\n\nVer la fuente: $_mefUrl'),
-      _seccion('Privacidad',
-          'No pedimos cuenta ni datos personales. No recolectamos ni compartimos información. Todo se queda '
-          'en tu dispositivo. Lee la Política de privacidad desde el menú o el pie de la app.'),
-      _seccion('Código abierto',
-          'El código y los datos son públicos y auditables: puedes ver exactamente cómo funciona y de dónde '
-          'sale cada fecha.\n\nRepositorio: $_repoUrl'),
-      _seccion('Contacto',
-          'Este NO es un canal oficial del Gobierno. Nunca te pediremos cédula, número de cuenta bancaria ni '
-          'datos personales. Para reportar un error o sugerencia: $_contacto'),
-      _seccion('Aviso final',
-          'Recuerda: esta es una herramienta informativa independiente. La información oficial y vinculante '
-          'siempre es la del Ministerio de Economía y Finanzas (MEF) de Panamá. Los días restantes se '
-          'calculan en hora de Panamá; requiere que el reloj de tu dispositivo esté correcto.'),
+      _seccion('Qué es', '«¿Cuándo Pagan?» es un proyecto independiente, gratuito y de código abierto que te muestra las fechas de pago del sector público de Panamá: jubilados, gastos de representación y grupos 1, 2 y 3.'),
+      _seccion('Qué NO es', 'No es una app oficial del Gobierno de Panamá. No está afiliada, patrocinada ni avalada por el MEF ni por ninguna entidad del Estado. No tramita ni resuelve pagos.'),
+      _seccion('De dónde salen las fechas', 'Se transcriben de lo que el MEF publica en sus canales oficiales. Las fechas son referenciales; ante cualquier diferencia, prevalece la publicación oficial del MEF.'),
+      _seccion('Privacidad', 'No pedimos cuenta ni datos personales. No recolectamos ni compartimos información. Todo se queda en tu dispositivo.'),
+      _seccion('Código abierto', 'El código y los datos son públicos y auditables.'),
       const SizedBox(height: 4),
       _enlace(context, Icons.open_in_new, 'Ver el calendario en el sitio del MEF', () => _abrir(_mefFullUrl)),
       _enlace(context, Icons.code, 'Código fuente (repositorio)', () => _abrir('https://$_repoUrl')),
       _enlace(context, Icons.mail_outline, 'Escríbenos: $_contacto', () => _abrir('mailto:$_contacto')),
       _enlace(context, Icons.language, 'Hecho por 3qbic', () => _abrir(_sitio3qbic)),
-      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)',
-          () => showLicensePage(
-              context: context,
-              applicationName: '¿Cuándo Pagan?',
-              applicationVersion: '0.1.0',
-              applicationLegalese: '© 2026 $_titular — Alexis García')),
+      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.1.0', applicationLegalese: '© 2026 $_titular — Alexis García')),
+      _enlace(context, Icons.privacy_tip_outlined, 'Política de privacidad', () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen()))),
       const SizedBox(height: 12),
-      const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.',
-          style: TextStyle(fontSize: 12, color: Color(0xFF9AA39F), height: 1.4)),
-    ]);
-  }
-}
+      const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
+    ];
 
 class PrivacidadScreen extends StatelessWidget {
   const PrivacidadScreen({super.key});
   @override
-  Widget build(BuildContext context) {
-    return _pantallaLegal(context, 'Política de privacidad', [
-      const Text('Política de privacidad',
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _ink, height: 1.15)),
-      const SizedBox(height: 4),
-      const Text('Resumen: no recolectamos tus datos. Todo se queda en tu teléfono.',
-          style: TextStyle(fontSize: 14, color: _muted)),
-      const SizedBox(height: 16),
-      _seccion('1. Quiénes somos',
-          '«¿Cuándo Pagan?» es una aplicación independiente, gratuita y de código abierto. No es una app '
-          'oficial del Gobierno de Panamá ni del MEF. El MEF se cita únicamente como fuente pública de la '
-          'información. Responsable del proyecto: 3qbic (3qbic.com).'),
-      _seccion('2. No recolectamos tus datos',
-          'La app funciona 100% en tu dispositivo. No necesitas crear una cuenta. No pedimos tu nombre, '
-          'cédula, teléfono ni correo. No tenemos servidores donde se guarde información tuya. No usamos '
-          'publicidad, rastreadores ni perfiles de usuario.'),
-      _seccion('3. Qué se guarda en tu dispositivo',
-          'Para que la app sea útil sin conexión, guarda localmente: tu institución favorita, tus '
-          'preferencias y una copia (caché) del calendario descargado. Esta información nunca sale de tu '
-          'dispositivo y no está asociada a tu identidad. Puedes borrarla limpiando el almacenamiento o '
-          'desinstalando.'),
-      _seccion('4. Conexión a internet',
-          'La app se conecta a nuestro servicio de distribución para descargar y actualizar el calendario '
-          '(datos públicos). En esa conexión no se envía ningún dato personal tuyo. El proveedor de '
-          'infraestructura (Cloudflare) procesa de forma técnica y temporal tu dirección IP solo para '
-          'entregar el contenido; no la usamos para identificarte. No usamos cookies ni identificadores de '
-          'seguimiento.'),
-      _seccion('5. Permisos',
-          'Acceso a internet: para descargar y actualizar el calendario. (Si en el futuro agregamos '
-          'recordatorios, pediremos permiso de notificaciones solo si los activas.) No pedimos ubicación, '
-          'contactos, cámara, micrófono ni tu identidad.'),
-      _seccion('6. Terceros',
-          'Cloudflare aloja y entrega el calendario (ver punto 4). Las tiendas (Google Play, App Store) '
-          'recolectan sus propias estadísticas conforme a sus políticas, fuera de nuestro control. No '
-          'compartimos ni vendemos datos personales, porque no los recolectamos.'),
-      _seccion('7. Tus derechos (Ley 81 de 2019, Panamá)',
-          'La Ley 81 reconoce derechos de acceso, rectificación, cancelación, oposición y portabilidad. Como '
-          'no almacenamos datos personales en servidores, no existe una base de datos tuya que consultar o '
-          'eliminar; tú controlas tu información en tu dispositivo. La autoridad competente es la ANTAI.'),
-      _seccion('8. Seguridad y cambios',
-          'La descarga del calendario usa conexión cifrada (HTTPS). Si cambiamos esta política, lo '
-          'indicaremos aquí y cualquier recolección futura será informada y, cuando corresponda, opcional.'),
-      _seccion('9. Contacto',
-          '$_contacto · $_repoUrl'),
-    ]);
-  }
+  Widget build(BuildContext context) => _legalScaffold(context, 'Política de privacidad', [
+        const Text('Política de privacidad', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi)),
+        const Text('Resumen: no recolectamos tus datos. Todo se queda en tu teléfono.', style: TextStyle(fontSize: 14, color: _mid)),
+        const SizedBox(height: 16),
+        _seccion('1. Quiénes somos', 'App independiente, gratuita y de código abierto. No es oficial del Gobierno ni del MEF. Responsable: 3qbic (3qbic.com).'),
+        _seccion('2. No recolectamos tus datos', 'Funciona 100% en tu dispositivo. Sin cuenta. No pedimos nombre, cédula, teléfono ni correo. No usamos publicidad ni rastreadores.'),
+        _seccion('3. Qué se guarda en tu dispositivo', 'Tu institución favorita, preferencias y una copia del calendario. Nunca sale de tu dispositivo.'),
+        _seccion('4. Conexión a internet', 'Descarga el calendario (datos públicos) desde infraestructura de 3qbic sobre Cloudflare. No se envían datos personales; Cloudflare procesa tu IP de forma técnica y temporal solo para entregar el contenido.'),
+        _seccion('5. Tus derechos (Ley 81/2019)', 'Derechos ARCO. Como no almacenamos datos en servidores, tú controlas tu información en el dispositivo. Autoridad: ANTAI.'),
+        _seccion('6. Contacto', '$_contacto · $_repoUrl'),
+      ]);
 }
+
+Scaffold _legalScaffold(BuildContext context, String titulo, List<Widget> hijos) => Scaffold(
+      backgroundColor: _bg0,
+      appBar: AppBar(backgroundColor: _bg1, surfaceTintColor: Colors.transparent, elevation: 0, foregroundColor: _hi, title: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18))),
+      body: _Fondo(
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: ListView(padding: const EdgeInsets.fromLTRB(20, 8, 20, 40), children: hijos),
+            ),
+          ),
+        ),
+      ),
+    );
