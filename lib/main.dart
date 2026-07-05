@@ -201,7 +201,8 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> {
   Dataset? _ds;
   List<Seleccion> _ops = const [];
-  Seleccion? _sel;
+  Seleccion? _sel;        // institución que se está consultando (persistida o no)
+  bool _recordar = true;  // ¿_sel guardada como favorita? (ganchito "recordar")
   bool _cargando = true;
   bool _ack = false;
   int _tab = 0;
@@ -217,26 +218,41 @@ class _RootPageState extends State<RootPage> {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_kFavorita);
     final ack = prefs.getBool(_kDisclaimer) ?? false;
+    final sel = token == null ? null : Seleccion.fromToken(token, ds.entidades);
     if (!mounted) return;
     setState(() {
       _ds = ds;
       _ops = _opciones(ds);
-      _sel = token == null ? null : Seleccion.fromToken(token, ds.entidades);
+      _sel = sel;
+      _recordar = sel != null; // si venía persistida, el ganchito arranca marcado
       _ack = ack;
       _cargando = false;
     });
   }
 
-  Future<void> _guardar(Seleccion s) async {
+  /// Consultar una institución: se muestra de inmediato. Por defecto se recuerda
+  /// (ganchito marcado), así la próxima apertura entra directo.
+  Future<void> _consultar(Seleccion s) async {
     final p = await SharedPreferences.getInstance();
     await p.setString(_kFavorita, s.toToken());
-    if (mounted) setState(() => _sel = s);
+    if (mounted) setState(() { _sel = s; _recordar = true; _tab = 0; });
+  }
+
+  /// Alternar el ganchito "Recordar esta institución" sin salir de la consulta.
+  Future<void> _setRecordar(bool v) async {
+    final p = await SharedPreferences.getInstance();
+    if (v && _sel != null) {
+      await p.setString(_kFavorita, _sel!.toToken());
+    } else {
+      await p.remove(_kFavorita);
+    }
+    if (mounted) setState(() => _recordar = v);
   }
 
   Future<void> _cambiar() async {
     final p = await SharedPreferences.getInstance();
     await p.remove(_kFavorita);
-    if (mounted) setState(() => _sel = null);
+    if (mounted) setState(() { _sel = null; _recordar = true; });
   }
 
   Future<void> _aceptar() async {
@@ -252,16 +268,16 @@ class _RootPageState extends State<RootPage> {
     if (_cargando) {
       body = const Center(child: CircularProgressIndicator(color: _acc));
     } else if (!_ack) {
-      body = DisclaimerGate(onEntendido: _aceptar);
+      body = DisclaimerGate(onContinuar: _aceptar);
     } else if (_sel == null) {
-      body = OnboardingView(ops: _ops, onGuardar: _guardar);
+      body = OnboardingView(ops: _ops, onConsultar: _consultar);
     } else {
       nav = true;
       body = switch (_tab) {
         1 => CalendarioTab(ds: _ds!, seleccion: _sel!),
         2 => DecimoTab(ds: _ds!),
         3 => const AcercaContenido(),
-        _ => HomeTab(ds: _ds!, seleccion: _sel!, onCambiar: _cambiar),
+        _ => HomeTab(ds: _ds!, seleccion: _sel!, recordar: _recordar, onRecordar: _setRecordar, onCambiar: _cambiar),
       };
     }
     return Scaffold(
@@ -360,9 +376,11 @@ class _BottomNav extends StatelessWidget {
 // ───────────────────────── Home ─────────────────────────
 
 class HomeTab extends StatelessWidget {
-  const HomeTab({required this.ds, required this.seleccion, required this.onCambiar, super.key});
+  const HomeTab({required this.ds, required this.seleccion, required this.recordar, required this.onRecordar, required this.onCambiar, super.key});
   final Dataset ds;
   final Seleccion seleccion;
+  final bool recordar;
+  final ValueChanged<bool> onRecordar;
   final VoidCallback onCambiar;
   @override
   Widget build(BuildContext context) {
@@ -372,7 +390,7 @@ class HomeTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
       children: [
-        _InstitucionCard(seleccion: seleccion, onCambiar: onCambiar),
+        _InstitucionCard(seleccion: seleccion, recordar: recordar, onRecordar: onRecordar, onCambiar: onCambiar),
         const SizedBox(height: 14),
         _HeroCard(pago: pago),
         if (pago.hayFecha) ...[
@@ -385,38 +403,68 @@ class HomeTab extends StatelessWidget {
 }
 
 class _InstitucionCard extends StatelessWidget {
-  const _InstitucionCard({required this.seleccion, required this.onCambiar});
+  const _InstitucionCard({required this.seleccion, required this.recordar, required this.onRecordar, required this.onCambiar});
   final Seleccion seleccion;
+  final bool recordar;
+  final ValueChanged<bool> onRecordar;
   final VoidCallback onCambiar;
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: _cardDeco(),
-      padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-      child: Row(children: [
-        Container(
-          width: 40, height: 40,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: const LinearGradient(colors: [Color(0x4025E6A4), Color(0x1025E6A4)]),
-            border: Border.all(color: const Color(0x5525E6A4)),
+      padding: const EdgeInsets.fromLTRB(14, 12, 10, 10),
+      child: Column(children: [
+        Row(children: [
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              gradient: const LinearGradient(colors: [Color(0x4025E6A4), Color(0x1025E6A4)]),
+              border: Border.all(color: const Color(0x5525E6A4)),
+            ),
+            child: const Icon(Icons.account_balance_rounded, color: _acc, size: 20),
           ),
-          child: const Icon(Icons.account_balance_rounded, color: _acc, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('MI INSTITUCIÓN', style: TextStyle(fontSize: 10, letterSpacing: 1.3, color: _mute, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 2),
-            Text(seleccion.etiqueta, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: _hi), maxLines: 2),
-            Text(_descSeleccion(seleccion), style: const TextStyle(fontSize: 12, color: _mid)),
-          ]),
-        ),
-        TextButton(
-          onPressed: onCambiar,
-          style: TextButton.styleFrom(foregroundColor: _acc, backgroundColor: const Color(0x1425E6A4), minimumSize: const Size(0, 44),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11))),
-          child: const Text('Cambiar', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(recordar ? 'MI INSTITUCIÓN' : 'CONSULTANDO',
+                  style: const TextStyle(fontSize: 10, letterSpacing: 1.3, color: _mute, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text(seleccion.etiqueta, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: _hi), maxLines: 2),
+              Text(_descSeleccion(seleccion), style: const TextStyle(fontSize: 12, color: _mid)),
+            ]),
+          ),
+          TextButton(
+            onPressed: onCambiar,
+            style: TextButton.styleFrom(foregroundColor: _acc, backgroundColor: const Color(0x1425E6A4), minimumSize: const Size(0, 44),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11))),
+            child: const Text('Cambiar', style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ]),
+        const Divider(height: 18, thickness: 1, color: _line),
+        // Ganchito "Recordar" (estilo remember-me): guardar es opcional.
+        Semantics(
+          container: true,
+          toggled: recordar,
+          label: 'Recordar esta institución',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: () => onRecordar(!recordar),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+              child: Row(children: [
+                Icon(recordar ? Icons.check_circle : Icons.radio_button_unchecked,
+                    size: 20, color: recordar ? _acc : _mute),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(recordar ? 'Recordar esta institución' : 'No recordar (solo esta vez)',
+                      style: TextStyle(fontSize: 13, color: recordar ? _hi : _mid, fontWeight: FontWeight.w500)),
+                ),
+                Text(recordar ? 'Abre aquí la próxima vez' : 'Preguntará al abrir',
+                    style: const TextStyle(fontSize: 11, color: _mute)),
+              ]),
+            ),
+          ),
         ),
       ]),
     );
@@ -729,26 +777,24 @@ class DecimoTab extends StatelessWidget {
 // ───────────────────────── Onboarding ─────────────────────────
 
 class OnboardingView extends StatefulWidget {
-  const OnboardingView({required this.ops, required this.onGuardar, super.key});
+  const OnboardingView({required this.ops, required this.onConsultar, super.key});
   final List<Seleccion> ops;
-  final ValueChanged<Seleccion> onGuardar;
+  final ValueChanged<Seleccion> onConsultar;
   @override
   State<OnboardingView> createState() => _OnboardingViewState();
 }
 
 class _OnboardingViewState extends State<OnboardingView> {
   String _q = '';
-  Seleccion? _cand;
   @override
   Widget build(BuildContext context) {
-    if (_cand != null) return _confirmacion(context, _cand!);
     final res = _filtrar(_q, widget.ops);
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
       children: [
         const Text('¿En qué institución trabajas?', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: _hi, height: 1.15)),
         const SizedBox(height: 6),
-        const Text('Escribe el nombre o la sigla (ej. MIDES, MEDUCA). El calendario cubre el Gobierno Central.', style: TextStyle(fontSize: 13.5, color: _mid, height: 1.45)),
+        const Text('Escribe el nombre o la sigla (ej. MIDES, MEDUCA) y ve cuándo pagan. El calendario cubre el Gobierno Central.', style: TextStyle(fontSize: 13.5, color: _mid, height: 1.45)),
         const SizedBox(height: 16),
         TextField(
           autofocus: true,
@@ -766,64 +812,9 @@ class _OnboardingViewState extends State<OnboardingView> {
           ),
         ),
         const SizedBox(height: 16),
-        if (_q.trim().isNotEmpty && res.isEmpty) const _NoCubierta() else ...res.map((s) => _ItemInstitucion(sel: s, onTap: () => setState(() => _cand = s))),
+        if (_q.trim().isNotEmpty && res.isEmpty) const _NoCubierta() else ...res.map((s) => _ItemInstitucion(sel: s, onTap: () => widget.onConsultar(s))),
       ],
     );
-  }
-
-  Widget _confirmacion(BuildContext context, Seleccion s) {
-    return ListView(padding: const EdgeInsets.fromLTRB(18, 28, 18, 24), children: [
-      Container(
-        decoration: _cardDeco(glow: true),
-        padding: const EdgeInsets.all(22),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(width: 46, height: 46, decoration: const BoxDecoration(color: Color(0x2625E6A4), shape: BoxShape.circle), child: const Icon(Icons.check_rounded, color: _acc, size: 26)),
-          const SizedBox(height: 16),
-          const Text('¡Todo en orden!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: _hi)),
-          const SizedBox(height: 4),
-          const Text('Tu institución está en el calendario del MEF.', style: TextStyle(fontSize: 14, color: _mid)),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0x0F25E6A4),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0x3325E6A4)),
-            ),
-            child: Row(children: [
-              Container(
-                width: 40, height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  gradient: const LinearGradient(colors: [Color(0x4025E6A4), Color(0x1025E6A4)]),
-                  border: Border.all(color: const Color(0x5525E6A4)),
-                ),
-                child: const Icon(Icons.account_balance_rounded, color: _acc, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(s.etiqueta, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: _hi), maxLines: 2),
-                  Text(_descSeleccion(s), style: const TextStyle(fontSize: 12.5, color: _mid)),
-                ]),
-              ),
-            ]),
-          ),
-          const SizedBox(height: 18),
-          SizedBox(
-            height: 52,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: _acc, foregroundColor: const Color(0xFF07130C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              onPressed: () => widget.onGuardar(s),
-              icon: const Icon(Icons.bookmark_added_outlined, size: 19),
-              label: const Text('Guardar y ver mis pagos', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Center(child: TextButton(onPressed: () => setState(() => _cand = null), child: const Text('Elegir otra', style: TextStyle(color: _acc)))),
-        ]),
-      ),
-    ]);
   }
 }
 
@@ -876,8 +867,8 @@ class _NoCubierta extends StatelessWidget {
 // ───────────────────────── Disclaimer ─────────────────────────
 
 class DisclaimerGate extends StatelessWidget {
-  const DisclaimerGate({required this.onEntendido, super.key});
-  final VoidCallback onEntendido;
+  const DisclaimerGate({required this.onContinuar, super.key});
+  final VoidCallback onContinuar;
   @override
   Widget build(BuildContext context) {
     return ListView(padding: const EdgeInsets.fromLTRB(18, 24, 18, 24), children: [
@@ -895,12 +886,19 @@ class DisclaimerGate extends StatelessWidget {
             height: 52,
             child: FilledButton(
               style: FilledButton.styleFrom(backgroundColor: _acc, foregroundColor: const Color(0xFF07130C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-              onPressed: onEntendido,
-              child: const Text('Entendido', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              onPressed: onContinuar,
+              child: const Text('Continuar', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
             ),
           ),
-          const SizedBox(height: 8),
-          Center(child: TextButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen())), child: const Text('Ver política de privacidad', style: TextStyle(color: _acc)))),
+          const SizedBox(height: 12),
+          // Aceptación implícita (patrón tipo Google): al continuar, se reconoce el carácter no oficial.
+          Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
+            const Text('Al continuar aceptas que es una app independiente y no oficial. ', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen())),
+              child: const Text('Ver privacidad ›', style: TextStyle(fontSize: 12, color: _acc, fontWeight: FontWeight.w600)),
+            ),
+          ]),
         ]),
       ),
     ]);
@@ -962,7 +960,7 @@ List<Widget> _acercaHijos(BuildContext context) => [
       _enlace(context, Icons.code, 'Código fuente (repositorio)', () => _abrir('https://$_repoUrl')),
       _enlace(context, Icons.mail_outline, 'Escríbenos: $_contacto', () => _abrir('mailto:$_contacto')),
       _enlace(context, Icons.language, 'Hecho por 3qbic', () => _abrir(_sitio3qbic)),
-      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.1.1', applicationLegalese: '© 2026 $_titular — Alexis García')),
+      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.2.0', applicationLegalese: '© 2026 $_titular — Alexis García')),
       _enlace(context, Icons.privacy_tip_outlined, 'Política de privacidad', () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen()))),
       const SizedBox(height: 12),
       const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
