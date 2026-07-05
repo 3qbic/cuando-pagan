@@ -25,3 +25,13 @@ pubspec.lock
 # macOS
 .DS_Store
 **/.DS_Store
+
+# Secretos / credenciales (nunca commitear en el repo público)
+.env
+.env.*
+*.dev.vars
+.dev.vars
+worker/.dev.vars
+*.pem
+*.key
+secrets.json
