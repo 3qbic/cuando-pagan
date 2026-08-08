@@ -16,11 +16,11 @@ import 'domain/entities/categoria.dart';
 import 'domain/entities/entidad.dart';
 import 'domain/entities/entrada_calendario.dart';
 import 'domain/entities/estado_fecha.dart';
+import 'domain/entities/evento_pago.dart';
 import 'domain/entities/manifest.dart';
-import 'domain/entities/proximo_pago.dart';
 import 'domain/entities/seleccion.dart';
 import 'domain/entities/xiii_mes.dart';
-import 'domain/logic/proximo_pago.dart';
+import 'domain/logic/proximo_evento.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -385,17 +385,18 @@ class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entradas = ds.calendario.where((e) => e.categoria == seleccion.categoria).toList();
-    final pago = calcularProximoPago(
-      entradasDeCategoria: entradas, seleccion: seleccion, manifest: ds.manifest, remoteDataVersion: ds.manifest.dataVersion);
+    final res = calcularProximoEvento(
+      entradasDeCategoria: entradas, xiii: ds.xiii, seleccion: seleccion,
+      manifest: ds.manifest, remoteDataVersion: ds.manifest.dataVersion);
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
       children: [
         _InstitucionCard(seleccion: seleccion, recordar: recordar, onRecordar: onRecordar, onCambiar: onCambiar),
         const SizedBox(height: 14),
-        _HeroCard(pago: pago),
-        if (pago.hayFecha) ...[
+        _HeroCard(res: res),
+        if (res.proximo?.entrada != null) ...[
           const SizedBox(height: 14),
-          _ProcesoCard(entrada: pago.entrada!),
+          _ProcesoCard(entrada: res.proximo!.entrada!),
         ],
       ],
     );
@@ -472,14 +473,19 @@ class _InstitucionCard extends StatelessWidget {
 }
 
 class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.pago});
-  final ProximoPago pago;
+  const _HeroCard({required this.res});
+  final ResultadoProximoEvento res;
+
   @override
   Widget build(BuildContext context) {
-    if (!pago.hayFecha) return _pendiente(context);
-    final e = pago.entrada!;
-    final f = e.fechaPagoDate;
-    final prog = _progreso(e, hoyPanama());
+    final ev = res.proximo;
+    if (ev == null) return _pendiente(context);
+    final f = ev.fecha;
+    final esHoy = ev.diasRestantes == 0;
+    // Progreso del anillo: quincena usa su proceso; décimo usa ventana fija 30d.
+    final prog = ev.entrada != null
+        ? _progreso(ev.entrada!, hoyPanama())
+        : ((30 - ev.diasRestantes) / 30).clamp(0.0, 1.0);
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF16273C), Color(0xFF0F1B2C)]),
@@ -489,7 +495,14 @@ class _HeroCard extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('PRÓXIMO PAGO', style: TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
+        Row(children: [
+          Text(esHoy ? '¡HOY TE TOCA!' : 'PRÓXIMO PAGO',
+              style: const TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
+          const Spacer(),
+          if (ev.esQuincena) const _ChipTipo(texto: 'QUINCENA', color: _acc, icono: Icons.payments_outlined),
+          if (ev.esQuincena && ev.esDecimo) const SizedBox(width: 6),
+          if (ev.esDecimo) const _ChipTipo(texto: 'DÉCIMO', color: _gold, icono: Icons.card_giftcard_rounded),
+        ]),
         const SizedBox(height: 12),
         Row(children: [
           Expanded(
@@ -499,11 +512,11 @@ class _HeroCard extends StatelessWidget {
               Text(DateFormat('EEEE', 'es').format(f), style: const TextStyle(fontSize: 13.5, color: _mid)),
             ]),
           ),
-          _Ring(dias: pago.diasRestantes, progreso: prog),
+          _Ring(dias: ev.diasRestantes, progreso: prog),
         ]),
         const SizedBox(height: 18),
         Row(children: [
-          _EstadoBadge(estado: pago.estado),
+          _EstadoBadge(estado: ev.estado),
           const Spacer(),
           InkWell(
             onTap: () => _abrir(_mefFullUrl),
@@ -525,11 +538,34 @@ class _HeroCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('PRÓXIMO PAGO', style: TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
         const SizedBox(height: 14),
-        _EstadoBadge(estado: pago.estado),
+        _EstadoBadge(estado: res.base.estado),
         const SizedBox(height: 12),
         const Text('El MEF aún no publica este período.', style: TextStyle(fontSize: 17, color: _hi, height: 1.4)),
         const SizedBox(height: 8),
         const Text('Fuente pública: MEF · App no oficial', style: TextStyle(fontSize: 12, color: _mid)),
+      ]),
+    );
+  }
+}
+
+class _ChipTipo extends StatelessWidget {
+  const _ChipTipo({required this.texto, required this.color, required this.icono});
+  final String texto;
+  final Color color;
+  final IconData icono;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: color.withValues(alpha: .12),
+        border: Border.all(color: color.withValues(alpha: .45)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icono, size: 11, color: color),
+        const SizedBox(width: 4),
+        Text(texto, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .8, color: color)),
       ]),
     );
   }
