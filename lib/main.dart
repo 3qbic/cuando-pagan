@@ -393,6 +393,10 @@ class HomeTab extends StatelessWidget {
       children: [
         _InstitucionCard(seleccion: seleccion, recordar: recordar, onRecordar: onRecordar, onCambiar: onCambiar),
         const SizedBox(height: 14),
+        if (res.recienPasado != null) ...[
+          const SizedBox(height: 14),
+          _AvisoRecienPagado(evento: res.recienPasado!),
+        ],
         _HeroCard(res: res),
         if (res.proximo?.entrada != null) ...[
           const SizedBox(height: 14),
@@ -566,6 +570,34 @@ class _ChipTipo extends StatelessWidget {
         Icon(icono, size: 11, color: color),
         const SizedBox(width: 4),
         Text(texto, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .8, color: color)),
+      ]),
+    );
+  }
+}
+
+class _AvisoRecienPagado extends StatelessWidget {
+  const _AvisoRecienPagado({required this.evento});
+  final EventoPago evento;
+  @override
+  Widget build(BuildContext context) {
+    final tipo = evento.esDecimo ? 'el décimo' : 'la quincena';
+    final fecha = DateFormat("d 'de' MMMM", 'es').format(evento.fecha);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0x14F4C868),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x33F4C868)),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.schedule, size: 18, color: _gold),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'Según el calendario, $tipo debía pagarse el $fecha. Si no te ha llegado, recuerda que la fecha es referencial; confírmalo con tu planilla o el MEF.',
+            style: const TextStyle(fontSize: 13, color: Color(0xFFD9C79A), height: 1.45),
+          ),
+        ),
       ]),
     );
   }
