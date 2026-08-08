@@ -395,8 +395,8 @@ class HomeTab extends StatelessWidget {
         _InstitucionCard(seleccion: seleccion, recordar: recordar, onRecordar: onRecordar, onCambiar: onCambiar),
         const SizedBox(height: 14),
         if (res.recienPasado != null) ...[
-          const SizedBox(height: 14),
           _AvisoRecienPagado(evento: res.recienPasado!),
+          const SizedBox(height: 14),
         ],
         _HeroCard(res: res),
         if (res.proximo?.entrada != null) ...[
@@ -409,7 +409,7 @@ class HomeTab extends StatelessWidget {
             child: TextButton.icon(
               onPressed: () => _abrir(_xiiiMesPlayUrl),
               icon: const Icon(Icons.calculate_outlined, size: 16, color: _gold),
-              label: const Text('¿Cuánto te toca? Calcúlalo con XIII Mes Panamá',
+              label: const Text('¿Cuánto te toca? Calcúlalo con XIII Mes Panamá (app hermana, no oficial)',
                   style: TextStyle(fontSize: 12.5, color: _gold, fontWeight: FontWeight.w600)),
             ),
           ),
@@ -592,7 +592,9 @@ class _AvisoRecienPagado extends StatelessWidget {
   final EventoPago evento;
   @override
   Widget build(BuildContext context) {
-    final tipo = evento.esDecimo ? 'el décimo' : 'la quincena';
+    final tipo = evento.esDecimo && evento.esQuincena
+        ? 'el décimo y la quincena'
+        : (evento.esDecimo ? 'el décimo' : 'la quincena');
     final fecha = DateFormat("d 'de' MMMM", 'es').format(evento.fecha);
     return Container(
       padding: const EdgeInsets.all(14),
