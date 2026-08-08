@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'core/text/normalizar.dart';
 import 'core/time/hoy_panama.dart';
 import 'core/time/tz.dart';
+import 'core/constants/umbrales.dart';
 import 'data/mappers.dart';
 import 'domain/entities/categoria.dart';
 import 'domain/entities/entidad.dart';
@@ -180,6 +181,12 @@ double _progreso(EntradaCalendario e, DateTime hoy) {
   final t = hoy.difference(ini).inSeconds / total;
   return t.clamp(0.0, 1.0);
 }
+
+/// Progreso (0..1) del anillo cuando el evento es décimo: ventana fija de
+/// [kVentanaAnilloDecimoDias] días antes de la fecha (el XIII no tiene proceso).
+double progresoAnilloDecimo(int diasRestantes) =>
+    ((kVentanaAnilloDecimoDias - diasRestantes) / kVentanaAnilloDecimoDias)
+        .clamp(0.0, 1.0);
 
 /// Subtítulo de una selección: nunca repite la etiqueta.
 /// Entidad → "Grupo 3 · MIDES"; Categoría → descriptor genérico.
@@ -408,6 +415,7 @@ class HomeTab extends StatelessWidget {
           Center(
             child: TextButton.icon(
               onPressed: () => _abrir(_xiiiMesPlayUrl),
+              style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
               icon: const Icon(Icons.calculate_outlined, size: 16, color: _gold),
               label: const Text('¿Cuánto te toca? Calcúlalo con XIII Mes Panamá (app hermana, no oficial)',
                   style: TextStyle(fontSize: 12.5, color: _gold, fontWeight: FontWeight.w600)),
@@ -501,7 +509,7 @@ class _HeroCard extends StatelessWidget {
     // Progreso del anillo: quincena usa su proceso; décimo usa ventana fija 30d.
     final prog = ev.entrada != null
         ? _progreso(ev.entrada!, hoyPanama())
-        : ((30 - ev.diasRestantes) / 30).clamp(0.0, 1.0);
+        : progresoAnilloDecimo(ev.diasRestantes);
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF16273C), Color(0xFF0F1B2C)]),
@@ -512,9 +520,11 @@ class _HeroCard extends StatelessWidget {
       padding: const EdgeInsets.all(22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Text(esHoy ? '¡HOY TE TOCA!' : 'PRÓXIMO PAGO',
-              style: const TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
-          const Spacer(),
+          Expanded(
+            child: Text(esHoy ? '¡HOY TE TOCA!' : 'PRÓXIMO PAGO',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
+          ),
           if (ev.esQuincena) const _ChipTipo(texto: 'QUINCENA', color: _acc, icono: Icons.payments_outlined),
           if (ev.esQuincena && ev.esDecimo) const SizedBox(width: 6),
           if (ev.esDecimo) const _ChipTipo(texto: 'DÉCIMO', color: _gold, icono: Icons.card_giftcard_rounded),

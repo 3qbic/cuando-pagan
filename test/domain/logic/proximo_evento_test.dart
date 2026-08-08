@@ -133,4 +133,12 @@ void main() {
     expect(r.recienPasado!.esDecimo, isTrue);
     expect(r.recienPasado!.fecha, DateTime.utc(2026, 7, 30));
   });
+
+  test('empate quincena+décimo HOY => diasRestantes 0, ambos tipos, sin recienPasado', () {
+    final r = calc(
+        filas: [fila('2026-08-01')], xiii: [xiiiEn('2026-08-01')], ahora: ahora);
+    expect(r.proximo!.diasRestantes, 0);
+    expect(r.proximo!.tipos, {TipoEvento.quincena, TipoEvento.decimo});
+    expect(r.recienPasado, isNull);
+  });
 }
