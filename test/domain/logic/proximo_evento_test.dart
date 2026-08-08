@@ -96,4 +96,41 @@ void main() {
         ahora: DateTime.utc(2026, 8, 1, 11, 0));
     expect(r1.proximo!.diasRestantes, r2.proximo!.diasRestantes);
   });
+
+  test('pago hace 2 días => recienPasado presente Y proximo apunta al siguiente', () {
+    final r = calc(
+        filas: [fila('2026-08-14')],
+        xiii: [xiiiEn('2026-07-30')], // hace 2 días respecto al 1-ago
+        ahora: ahora);
+    expect(r.recienPasado, isNotNull);
+    expect(r.recienPasado!.esDecimo, isTrue);
+    expect(r.recienPasado!.diasRestantes, -2);
+    expect(r.proximo!.esQuincena, isTrue);
+    expect(r.proximo!.diasRestantes, 13);
+  });
+
+  test('pago hace exactamente 6 días => todavía dentro de la ventana', () {
+    final r = calc(xiii: [xiiiEn('2026-07-26')], ahora: ahora);
+    expect(r.recienPasado, isNotNull);
+    expect(r.recienPasado!.diasRestantes, -6);
+  });
+
+  test('pago hace 7 días => fuera de la ventana, sin aviso', () {
+    final r = calc(xiii: [xiiiEn('2026-07-25')], ahora: ahora);
+    expect(r.recienPasado, isNull);
+  });
+
+  test('sin eventos futuros => proximo null y base delega Pendiente', () {
+    final r = calc(filas: [fila('2026-07-20')], ahora: ahora);
+    expect(r.proximo, isNull);
+    expect(r.base.hayFecha, isFalse);
+    expect(r.base.estado, EstadoFecha.pendiente);
+  });
+
+  test('dos pasados en ventana => recienPasado es el más reciente', () {
+    final r = calc(
+        filas: [fila('2026-07-27')], xiii: [xiiiEn('2026-07-30')], ahora: ahora);
+    expect(r.recienPasado!.esDecimo, isTrue);
+    expect(r.recienPasado!.fecha, DateTime.utc(2026, 7, 30));
+  });
 }
