@@ -11,16 +11,17 @@ import 'package:url_launcher/url_launcher.dart';
 import 'core/text/normalizar.dart';
 import 'core/time/hoy_panama.dart';
 import 'core/time/tz.dart';
+import 'core/constants/umbrales.dart';
 import 'data/mappers.dart';
 import 'domain/entities/categoria.dart';
 import 'domain/entities/entidad.dart';
 import 'domain/entities/entrada_calendario.dart';
 import 'domain/entities/estado_fecha.dart';
+import 'domain/entities/evento_pago.dart';
 import 'domain/entities/manifest.dart';
-import 'domain/entities/proximo_pago.dart';
 import 'domain/entities/seleccion.dart';
 import 'domain/entities/xiii_mes.dart';
-import 'domain/logic/proximo_pago.dart';
+import 'domain/logic/proximo_evento.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -50,6 +51,7 @@ const _sitio3qbic = 'https://3qbic.com';
 const _repoUrl = 'github.com/3qbic/cuando-pagan';
 const _contacto = 'cuandopagan@3qbic.com';
 const _mefFullUrl = 'https://www.mef.gob.pa/transparencia/calendario-de-pago-del-sector-publico/';
+const _xiiiMesPlayUrl = 'https://play.google.com/store/apps/details?id=com.amgd.xiiimespanama';
 
 Future<void> _abrir(String url) async {
   final uri = Uri.parse(url);
@@ -179,6 +181,12 @@ double _progreso(EntradaCalendario e, DateTime hoy) {
   final t = hoy.difference(ini).inSeconds / total;
   return t.clamp(0.0, 1.0);
 }
+
+/// Progreso (0..1) del anillo cuando el evento es décimo: ventana fija de
+/// [kVentanaAnilloDecimoDias] días antes de la fecha (el XIII no tiene proceso).
+double progresoAnilloDecimo(int diasRestantes) =>
+    ((kVentanaAnilloDecimoDias - diasRestantes) / kVentanaAnilloDecimoDias)
+        .clamp(0.0, 1.0);
 
 /// Subtítulo de una selección: nunca repite la etiqueta.
 /// Entidad → "Grupo 3 · MIDES"; Categoría → descriptor genérico.
@@ -385,17 +393,34 @@ class HomeTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entradas = ds.calendario.where((e) => e.categoria == seleccion.categoria).toList();
-    final pago = calcularProximoPago(
-      entradasDeCategoria: entradas, seleccion: seleccion, manifest: ds.manifest, remoteDataVersion: ds.manifest.dataVersion);
+    final res = calcularProximoEvento(
+      entradasDeCategoria: entradas, xiii: ds.xiii, seleccion: seleccion,
+      manifest: ds.manifest, remoteDataVersion: ds.manifest.dataVersion);
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
       children: [
         _InstitucionCard(seleccion: seleccion, recordar: recordar, onRecordar: onRecordar, onCambiar: onCambiar),
         const SizedBox(height: 14),
-        _HeroCard(pago: pago),
-        if (pago.hayFecha) ...[
+        if (res.recienPasado != null) ...[
+          _AvisoRecienPagado(evento: res.recienPasado!),
           const SizedBox(height: 14),
-          _ProcesoCard(entrada: pago.entrada!),
+        ],
+        _HeroCard(res: res),
+        if (res.proximo?.entrada != null) ...[
+          const SizedBox(height: 14),
+          _ProcesoCard(entrada: res.proximo!.entrada!),
+        ],
+        if (res.proximo?.esDecimo ?? false) ...[
+          const SizedBox(height: 10),
+          Center(
+            child: TextButton.icon(
+              onPressed: () => _abrir(_xiiiMesPlayUrl),
+              style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
+              icon: const Icon(Icons.calculate_outlined, size: 16, color: _gold),
+              label: const Text('¿Cuánto te toca? Calcúlalo con XIII Mes Panamá (app hermana, no oficial)',
+                  style: TextStyle(fontSize: 12.5, color: _gold, fontWeight: FontWeight.w600)),
+            ),
+          ),
         ],
       ],
     );
@@ -472,14 +497,19 @@ class _InstitucionCard extends StatelessWidget {
 }
 
 class _HeroCard extends StatelessWidget {
-  const _HeroCard({required this.pago});
-  final ProximoPago pago;
+  const _HeroCard({required this.res});
+  final ResultadoProximoEvento res;
+
   @override
   Widget build(BuildContext context) {
-    if (!pago.hayFecha) return _pendiente(context);
-    final e = pago.entrada!;
-    final f = e.fechaPagoDate;
-    final prog = _progreso(e, hoyPanama());
+    final ev = res.proximo;
+    if (ev == null) return _pendiente(context);
+    final f = ev.fecha;
+    final esHoy = ev.diasRestantes == 0;
+    // Progreso del anillo: quincena usa su proceso; décimo usa ventana fija 30d.
+    final prog = ev.entrada != null
+        ? _progreso(ev.entrada!, hoyPanama())
+        : progresoAnilloDecimo(ev.diasRestantes);
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [Color(0xFF16273C), Color(0xFF0F1B2C)]),
@@ -489,7 +519,16 @@ class _HeroCard extends StatelessWidget {
       ),
       padding: const EdgeInsets.all(22),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('PRÓXIMO PAGO', style: TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
+        Row(children: [
+          Expanded(
+            child: Text(esHoy ? '¡HOY TE TOCA!' : 'PRÓXIMO PAGO',
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
+          ),
+          if (ev.esQuincena) const _ChipTipo(texto: 'QUINCENA', color: _acc, icono: Icons.payments_outlined),
+          if (ev.esQuincena && ev.esDecimo) const SizedBox(width: 6),
+          if (ev.esDecimo) const _ChipTipo(texto: 'DÉCIMO', color: _gold, icono: Icons.card_giftcard_rounded),
+        ]),
         const SizedBox(height: 12),
         Row(children: [
           Expanded(
@@ -499,11 +538,11 @@ class _HeroCard extends StatelessWidget {
               Text(DateFormat('EEEE', 'es').format(f), style: const TextStyle(fontSize: 13.5, color: _mid)),
             ]),
           ),
-          _Ring(dias: pago.diasRestantes, progreso: prog),
+          _Ring(dias: ev.diasRestantes, progreso: prog),
         ]),
         const SizedBox(height: 18),
         Row(children: [
-          _EstadoBadge(estado: pago.estado),
+          _EstadoBadge(estado: ev.estado),
           const Spacer(),
           InkWell(
             onTap: () => _abrir(_mefFullUrl),
@@ -525,11 +564,64 @@ class _HeroCard extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const Text('PRÓXIMO PAGO', style: TextStyle(fontSize: 11, letterSpacing: 2, color: _acc, fontWeight: FontWeight.w800)),
         const SizedBox(height: 14),
-        _EstadoBadge(estado: pago.estado),
+        _EstadoBadge(estado: res.base.estado),
         const SizedBox(height: 12),
         const Text('El MEF aún no publica este período.', style: TextStyle(fontSize: 17, color: _hi, height: 1.4)),
         const SizedBox(height: 8),
         const Text('Fuente pública: MEF · App no oficial', style: TextStyle(fontSize: 12, color: _mid)),
+      ]),
+    );
+  }
+}
+
+class _ChipTipo extends StatelessWidget {
+  const _ChipTipo({required this.texto, required this.color, required this.icono});
+  final String texto;
+  final Color color;
+  final IconData icono;
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: color.withValues(alpha: .12),
+        border: Border.all(color: color.withValues(alpha: .45)),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icono, size: 11, color: color),
+        const SizedBox(width: 4),
+        Text(texto, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .8, color: color)),
+      ]),
+    );
+  }
+}
+
+class _AvisoRecienPagado extends StatelessWidget {
+  const _AvisoRecienPagado({required this.evento});
+  final EventoPago evento;
+  @override
+  Widget build(BuildContext context) {
+    final tipo = evento.esDecimo && evento.esQuincena
+        ? 'el décimo y la quincena'
+        : (evento.esDecimo ? 'el décimo' : 'la quincena');
+    final fecha = DateFormat("d 'de' MMMM", 'es').format(evento.fecha);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0x14F4C868),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x33F4C868)),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.schedule, size: 18, color: _gold),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'Según el calendario, $tipo debía pagarse el $fecha. Si no te ha llegado, recuerda que la fecha es referencial; confírmalo con tu planilla o el MEF.',
+            style: const TextStyle(fontSize: 13, color: Color(0xFFD9C79A), height: 1.45),
+          ),
+        ),
       ]),
     );
   }
@@ -767,6 +859,35 @@ class DecimoTab extends StatelessWidget {
                 ),
             ]),
           ),
+        const SizedBox(height: 10),
+        InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _abrir(_xiiiMesPlayUrl),
+          child: Container(
+            decoration: _cardDeco(borde: const Color(0x33F4C868)),
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(colors: [Color(0x40F4C868), Color(0x10F4C868)]),
+                  border: Border.all(color: const Color(0x55F4C868)),
+                ),
+                child: const Icon(Icons.calculate_outlined, color: _gold, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('¿Quieres saber cuánto te toca?', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: _hi)),
+                  SizedBox(height: 2),
+                  Text('Calcúlalo con XIII Mes Panamá, nuestra app hermana (también independiente y no oficial).', style: TextStyle(fontSize: 12, color: _mid, height: 1.35)),
+                ]),
+              ),
+              const Icon(Icons.open_in_new, size: 16, color: _mute),
+            ]),
+          ),
+        ),
         const SizedBox(height: 6),
         const Text('Fechas del décimo según el calendario del MEF · App no oficial', style: TextStyle(fontSize: 11.5, color: _mute)),
       ],

@@ -6,3 +6,12 @@ const int kUmbralStaleDias = 195;
 
 /// Margen tras la última fecha cubierta del dataset para marcar desactualizado.
 const int kMargenCoberturaDias = 14;
+
+/// Días tras la fecha de pago durante los cuales el Home muestra el aviso
+/// "debía pagarse el X" antes de pasar la página al siguiente evento.
+const int kVentanaRecienPagadoDias = 6;
+
+/// Ventana (en días) del anillo de progreso cuando el evento principal es el
+/// décimo (que no tiene inicio_registro): el anillo se llena en los últimos
+/// [kVentanaAnilloDecimoDias] días antes de la fecha.
+const int kVentanaAnilloDecimoDias = 30;
