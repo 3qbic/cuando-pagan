@@ -50,6 +50,7 @@ const _sitio3qbic = 'https://3qbic.com';
 const _repoUrl = 'github.com/3qbic/cuando-pagan';
 const _contacto = 'cuandopagan@3qbic.com';
 const _mefFullUrl = 'https://www.mef.gob.pa/transparencia/calendario-de-pago-del-sector-publico/';
+const _xiiiMesPlayUrl = 'https://play.google.com/store/apps/details?id=com.amgd.xiiimespanama';
 
 Future<void> _abrir(String url) async {
   final uri = Uri.parse(url);
@@ -401,6 +402,17 @@ class HomeTab extends StatelessWidget {
         if (res.proximo?.entrada != null) ...[
           const SizedBox(height: 14),
           _ProcesoCard(entrada: res.proximo!.entrada!),
+        ],
+        if (res.proximo?.esDecimo ?? false) ...[
+          const SizedBox(height: 10),
+          Center(
+            child: TextButton.icon(
+              onPressed: () => _abrir(_xiiiMesPlayUrl),
+              icon: const Icon(Icons.calculate_outlined, size: 16, color: _gold),
+              label: const Text('¿Cuánto te toca? Calcúlalo con XIII Mes Panamá',
+                  style: TextStyle(fontSize: 12.5, color: _gold, fontWeight: FontWeight.w600)),
+            ),
+          ),
         ],
       ],
     );
@@ -835,6 +847,35 @@ class DecimoTab extends StatelessWidget {
                 ),
             ]),
           ),
+        const SizedBox(height: 10),
+        InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => _abrir(_xiiiMesPlayUrl),
+          child: Container(
+            decoration: _cardDeco(borde: const Color(0x33F4C868)),
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              Container(
+                width: 40, height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(colors: [Color(0x40F4C868), Color(0x10F4C868)]),
+                  border: Border.all(color: const Color(0x55F4C868)),
+                ),
+                child: const Icon(Icons.calculate_outlined, color: _gold, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('¿Quieres saber cuánto te toca?', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: _hi)),
+                  SizedBox(height: 2),
+                  Text('Calcúlalo con XIII Mes Panamá, nuestra app hermana (también independiente y no oficial).', style: TextStyle(fontSize: 12, color: _mid, height: 1.35)),
+                ]),
+              ),
+              const Icon(Icons.open_in_new, size: 16, color: _mute),
+            ]),
+          ),
+        ),
         const SizedBox(height: 6),
         const Text('Fechas del décimo según el calendario del MEF · App no oficial', style: TextStyle(fontSize: 11.5, color: _mute)),
       ],
