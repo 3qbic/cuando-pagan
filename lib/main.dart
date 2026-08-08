@@ -1081,7 +1081,7 @@ List<Widget> _acercaHijos(BuildContext context) => [
       _enlace(context, Icons.code, 'Código fuente (repositorio)', () => _abrir('https://$_repoUrl')),
       _enlace(context, Icons.mail_outline, 'Escríbenos: $_contacto', () => _abrir('mailto:$_contacto')),
       _enlace(context, Icons.language, 'Hecho por 3qbic', () => _abrir(_sitio3qbic)),
-      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.2.2', applicationLegalese: '© 2026 $_titular — Alexis García')),
+      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.3.0', applicationLegalese: '© 2026 $_titular — Alexis García')),
       _enlace(context, Icons.privacy_tip_outlined, 'Política de privacidad', () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen()))),
       const SizedBox(height: 12),
       const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
