@@ -105,7 +105,15 @@ largo + días de acreditación bancaria lenta.)
   "Debía pagarse el {d 'de' MMMM}. Si no te ha llegado, recuerda que la fecha es
   referencial; confírmalo con tu planilla o el MEF." (+ etiqueta del tipo).
 - **`_ProcesoCard`**: se renderiza solo si `proximo.entrada != null` (hay quincena).
-- **Pestañas Calendario y Décimo:** sin cambios en v1.
+- **Cross-link a «XIII Mes Panamá»** (app hermana del mismo autor, Google Play
+  `com.amgd.xiiimespanama` — calcula CUÁNTO te toca; esta app dice CUÁNDO):
+  - Tarjeta al final de la pestaña **Décimo**: "¿Quieres saber cuánto te toca? Calcúlalo
+    con XIII Mes Panamá →" (abre la ficha de Play vía url_launcher; en iOS/Web abre la
+    misma URL de Play, que funciona como página web).
+  - Enlace secundario compacto en el Home cuando el evento principal es décimo.
+  - Es un enlace externo simple: sin SDKs, sin tracking (invariante intacto). Se declara
+    como app hermana "también independiente y no oficial" para no diluir el disclaimer.
+- **Pestaña Calendario:** sin cambios en v1.
 - Todos los textos en español neutral panameño (tuteo), 12h AM/PM donde aplique.
 
 ## 4. Datos
