@@ -597,32 +597,66 @@ class _ChipTipo extends StatelessWidget {
   }
 }
 
-class _AvisoRecienPagado extends StatelessWidget {
+/// Aviso compacto y colapsable: una línea ("El décimo debía pagarse el 6 de
+/// agosto" + flecha); al tocarlo se expande la explicación referencial.
+class _AvisoRecienPagado extends StatefulWidget {
   const _AvisoRecienPagado({required this.evento});
   final EventoPago evento;
   @override
+  State<_AvisoRecienPagado> createState() => _AvisoRecienPagadoState();
+}
+
+class _AvisoRecienPagadoState extends State<_AvisoRecienPagado> {
+  bool _expandido = false;
+
+  @override
   Widget build(BuildContext context) {
-    final tipo = evento.esDecimo && evento.esQuincena
-        ? 'el décimo y la quincena'
-        : (evento.esDecimo ? 'el décimo' : 'la quincena');
-    final fecha = DateFormat("d 'de' MMMM", 'es').format(evento.fecha);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0x14F4C868),
+    final ev = widget.evento;
+    final titulo = ev.esDecimo && ev.esQuincena
+        ? 'El décimo y la quincena debían pagarse'
+        : (ev.esDecimo ? 'El décimo debía pagarse' : 'La quincena debía pagarse');
+    final fecha = DateFormat("d 'de' MMMM", 'es').format(ev.fecha);
+    return Semantics(
+      button: true,
+      expanded: _expandido,
+      label: 'Aviso: $titulo el $fecha. Toca para ver detalles.',
+      child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0x33F4C868)),
-      ),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Icon(Icons.schedule, size: 18, color: _gold),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            'Según el calendario, $tipo debía pagarse el $fecha. Si no te ha llegado, recuerda que la fecha es referencial; confírmalo con tu planilla o el MEF.',
-            style: const TextStyle(fontSize: 13, color: Color(0xFFD9C79A), height: 1.45),
+        onTap: () => setState(() => _expandido = !_expandido),
+        child: AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0x14F4C868),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0x33F4C868)),
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Row(children: [
+                const Icon(Icons.schedule, size: 15, color: _gold),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text('$titulo el $fecha',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFFD9C79A))),
+                ),
+                Icon(_expandido ? Icons.expand_less : Icons.expand_more, size: 18, color: _gold),
+              ]),
+              if (_expandido) ...[
+                const SizedBox(height: 8),
+                const Text(
+                  'Si no te ha llegado, recuerda que la fecha es referencial; confírmalo con tu planilla o el MEF.',
+                  style: TextStyle(fontSize: 12.5, color: Color(0xFFD9C79A), height: 1.45),
+                ),
+              ],
+            ]),
           ),
         ),
-      ]),
+      ),
     );
   }
 }
@@ -633,7 +667,7 @@ class _Ring extends StatelessWidget {
   final double progreso;
   @override
   Widget build(BuildContext context) {
-    final txt = dias <= 0 ? 'HOY' : '$dias';
+    final esHoy = dias <= 0;
     return SizedBox(
       width: 116, height: 116,
       child: Stack(alignment: Alignment.center, children: [
@@ -646,8 +680,14 @@ class _Ring extends StatelessWidget {
           ),
           child: Center(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(txt, style: TextStyle(fontSize: dias <= 0 ? 26 : 36, fontWeight: FontWeight.w800, color: Colors.white, height: 1)),
-              if (dias > 0) const Text('DÍAS', style: TextStyle(fontSize: 10, color: _mid, letterSpacing: .5)),
+              if (!esHoy)
+                Text(dias == 1 ? 'FALTA' : 'FALTAN',
+                    style: const TextStyle(fontSize: 8.5, color: _mid, letterSpacing: 1.2, fontWeight: FontWeight.w700)),
+              Text(esHoy ? 'HOY' : '$dias',
+                  style: TextStyle(fontSize: esHoy ? 26 : 32, fontWeight: FontWeight.w800, color: Colors.white, height: 1.05)),
+              if (!esHoy)
+                Text(dias == 1 ? 'DÍA' : 'DÍAS',
+                    style: const TextStyle(fontSize: 10, color: _mid, letterSpacing: .5)),
             ]),
           ),
         ),
