@@ -1,0 +1,22 @@
+# Cloudflare Pages headers — control de caché de la app Flutter.
+# Los archivos "puerta de entrada" NUNCA se cachean sin revalidar: así el
+# navegador detecta cada versión nueva de inmediato (el service worker de
+# Flutter versiona el resto de los assets por hash).
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache
+
+/flutter_bootstrap.js
+  Cache-Control: no-cache
+
+/flutter_service_worker.js
+  Cache-Control: no-cache
+
+/version.json
+  Cache-Control: no-cache
+
+/manifest.json
+  Cache-Control: no-cache
