@@ -33,6 +33,22 @@
 
   <title>¿Cuándo Pagan? — fechas de pago del sector público de Panamá (app no oficial)</title>
   <link rel="manifest" href="manifest.json">
+
+  <script>
+    // Auto-actualización: cuando el service worker nuevo toma control tras un
+    // deploy, recarga la página UNA vez para servir la versión fresca (evita
+    // el clásico "hay que refrescar dos veces" de Flutter web).
+    if ('serviceWorker' in navigator) {
+      var teniaControlador = !!navigator.serviceWorker.controller;
+      var yaRecargo = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (teniaControlador && !yaRecargo) {
+          yaRecargo = true;
+          window.location.reload();
+        }
+      });
+    }
+  </script>
 </head>
 <body>
   <!--
