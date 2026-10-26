@@ -2,6 +2,9 @@ name = "calendario-pago-pa"
 main = "src/index.js"
 compatibility_date = "2026-06-26"
 
+# Worker Route: solo /v1/* del dominio de la app; la SPA y /privacidad/ siguen en Pages.
+routes = [{ pattern = "cuandopagan.3qbic.com/v1/*", zone_name = "3qbic.com" }]
+
 # JSON se importa como modulo (esbuild lo empaqueta). No requiere KV ni R2.
 # Datos generados por pipeline/build_dataset.py -> worker/src/data/*.json
 rules = [
