@@ -1169,7 +1169,7 @@ List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado, String? app
       _seccion('Qué es', '«¿Cuándo Pagan?» es un proyecto independiente, gratuito y de código abierto que te muestra las fechas de pago del sector público de Panamá: jubilados, gastos de representación y grupos 1, 2 y 3.'),
       _seccion('Qué NO es', 'No es una app oficial del Gobierno de Panamá. No está afiliada, patrocinada ni avalada por el MEF ni por ninguna entidad del Estado. No tramita ni resuelve pagos.'),
       _seccion('De dónde salen las fechas', 'Se transcriben de lo que el MEF publica en sus canales oficiales. Las fechas son referenciales; ante cualquier diferencia, prevalece la publicación oficial del MEF.'),
-      _seccion('Privacidad', 'No pedimos cuenta ni datos personales. En la web usamos analítica agregada y sin cookies (Cloudflare); la app móvil, no. Lo tuyo se queda en tu dispositivo.'),
+      _seccion('Privacidad', 'No pedimos cuenta ni datos personales. Contamos aperturas de forma anónima (sin IP ni identificadores). Tus preferencias se quedan en tu dispositivo.'),
       _seccion('Código abierto', 'El código y los datos son públicos y auditables.'),
       const SizedBox(height: 4),
       _enlace(context, Icons.open_in_new, 'Ver el calendario en el sitio del MEF', () => _abrir(_mefFullUrl)),
@@ -1201,7 +1201,7 @@ class PrivacidadScreen extends StatelessWidget {
         _seccion('2. No recolectamos datos personales', 'Funciona en tu dispositivo. Sin cuenta. No pedimos nombre, cédula, teléfono ni correo. No usamos publicidad, rastreadores publicitarios ni perfiles de usuario.'),
         _seccion('3. Qué se guarda en tu dispositivo', 'Tu institución favorita, preferencias y una copia del calendario. Nunca sale de tu dispositivo.'),
         _seccion('4. Conexión a internet', 'Descarga el calendario (datos públicos) desde infraestructura de 3qbic sobre Cloudflare. No se envían datos personales; Cloudflare procesa tu IP de forma técnica y temporal solo para entregar el contenido.'),
-        _seccion('5. Analítica (solo versión web)', 'La versión web (cuandopagan.3qbic.com) usa analítica agregada y sin cookies (Cloudflare Web Analytics): cuenta visitas y velocidad de carga de forma anónima, sin cookies, sin identificarte y sin seguirte entre sitios. La app móvil no incluye ninguna analítica.'),
+        _seccion('5. Analítica (solo versión web)', 'La versión web (cuandopagan.3qbic.com) usa analítica agregada y sin cookies (Cloudflare Web Analytics): cuenta visitas y velocidad de carga de forma anónima, sin cookies, sin identificarte y sin seguirte entre sitios. Fuera de este conteo anónimo, la app no incluye ninguna analítica. Conteo anónimo de aperturas: cada vez que abres la app, esta avisa a nuestro servicio la plataforma (web, Android o iOS), la versión de la app y la versión del calendario que tiene. Con eso contamos cuántas aperturas hay por día. No guardamos tu dirección IP, ni un identificador tuyo o de tu dispositivo, ni nada que permita saber quién eres o seguirte.'),
         _seccion('6. Tus derechos (Ley 81/2019)', 'Derechos ARCO. Como no almacenamos datos personales en servidores, tú controlas tu información en el dispositivo. Autoridad: ANTAI.'),
         _seccion('7. Contacto', '$_contacto · $_repoUrl'),
       ]);
