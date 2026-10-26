@@ -35,3 +35,9 @@ worker/.dev.vars
 *.pem
 *.key
 secrets.json
+
+# Credenciales de Firebase / service accounts (Fase 3, repo público)
+*service-account*.json
+*firebase-adminsdk*.json
+google-services.json
+GoogleService-Info.plist
