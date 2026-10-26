@@ -35,6 +35,12 @@ class ConsultasTest(unittest.TestCase):
             self.assertIn(frag, q)
         self.assertTrue(q.rstrip().endswith('FORMAT JSON'))
 
+    def test_group_by_solo_nombres_de_columna(self):
+        # La SQL de Analytics Engine rechaza expresiones en GROUP BY (HTTP 422).
+        for nombre, q in metricas.consultas(7).items():
+            grupo = q.split('GROUP BY ', 1)[1].split(' ORDER BY', 1)[0]
+            self.assertNotIn('(', grupo, nombre)
+
     def test_dias_en_las_cuatro(self):
         qs = metricas.consultas(7)
         self.assertEqual(set(qs), {'aperturas_dia', 'por_version',

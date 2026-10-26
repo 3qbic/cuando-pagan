@@ -59,7 +59,8 @@ def consultas(dias: int) -> dict:
             "sumIf(_sample_interval, blob4 = '1') AS con_push "
             f"FROM {DATASET} "
             f"WHERE index1 = 'apertura' AND {ventana} "
-            f"GROUP BY {dia_pa} ORDER BY dia DESC FORMAT JSON"
+            # AE solo acepta nombres de columna en GROUP BY: se agrupa por el alias.
+            "GROUP BY dia ORDER BY dia DESC FORMAT JSON"
         ),
         'por_version': (
             "SELECT blob3 AS version, blob2 AS plataforma, "
