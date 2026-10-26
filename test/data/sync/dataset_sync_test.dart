@@ -9,13 +9,15 @@ import 'package:cuando_pagan/data/sync/dataset_sync.dart';
 const _base = 'https://w.test';
 
 Map<String, dynamic> _seed({int version = 1}) {
-  final m = jsonDecode(File('assets/seed/all.json').readAsStringSync()) as Map<String, dynamic>;
+  final m = jsonDecode(File('assets/seed/all.json').readAsStringSync())
+      as Map<String, dynamic>;
   (m['manifest'] as Map<String, dynamic>)['data_version'] = version;
   return m;
 }
 
 http.Response _json(Object body, [int code = 200]) =>
-    http.Response(jsonEncode(body), code, headers: {'content-type': 'application/json; charset=utf-8'});
+    http.Response(jsonEncode(body), code,
+        headers: {'content-type': 'application/json; charset=utf-8'});
 
 Future<DatasetSync> _sync(
   MockClient client, {
@@ -26,22 +28,37 @@ Future<DatasetSync> _sync(
 }) async {
   SharedPreferences.setMockInitialValues(prefsIniciales);
   final prefs = await SharedPreferences.getInstance();
+  Future<Map<String, dynamic>> leer() async => _seed(version: semilla);
+  // Sin appVersion se omite el argumento para probar el default del constructor.
+  if (appVersion == null) {
+    return DatasetSync(
+        client: client,
+        prefs: prefs,
+        leerSemilla: leer,
+        siglas: const {},
+        baseUrl: _base,
+        timeout: timeout);
+  }
   return DatasetSync(
-    client: client,
-    prefs: prefs,
-    leerSemilla: () async => _seed(version: semilla),
-    siglas: const {},
-    baseUrl: _base,
-    timeout: timeout,
-    appVersion: appVersion ?? 'desconocido',
-  );
+      client: client,
+      prefs: prefs,
+      leerSemilla: leer,
+      siglas: const {},
+      baseUrl: _base,
+      timeout: timeout,
+      appVersion: appVersion);
 }
 
-MockClient _noRed() => MockClient((req) async => fail('No debía haber red: ${req.url}'));
+MockClient _noRed() =>
+    MockClient((req) async => fail('No debía haber red: ${req.url}'));
 
-MockClient _remoto({required int version, Map<String, dynamic>? all, void Function(http.Request)? onAll}) =>
+MockClient _remoto(
+        {required int version,
+        Map<String, dynamic>? all,
+        void Function(http.Request)? onAll}) =>
     MockClient((req) async {
-      if (req.url.path == '/v1/version') return _json({'data_version': version});
+      if (req.url.path == '/v1/version')
+        return _json({'data_version': version});
       if (req.url.path == '/v1/all') {
         onAll?.call(req);
         return _json(all ?? _seed(version: version));
@@ -94,8 +111,9 @@ void main() {
 
   group('sincronizar', () {
     test('version devuelve HTML: no crashea ni cachea', () async {
-      final c = MockClient((req) async =>
-          http.Response('<!DOCTYPE html><html></html>', 200, headers: {'content-type': 'text/html'}));
+      final c = MockClient((req) async => http.Response(
+          '<!DOCTYPE html><html></html>', 200,
+          headers: {'content-type': 'text/html'}));
       final s = await _sync(c);
       await s.cargarInicial();
       expect(await s.sincronizar(), isNull);
@@ -130,7 +148,8 @@ void main() {
       expect(reqAll!.headers['If-None-Match'], '"v1"');
     });
 
-    test('tras sincronizar, la siguiente comparación usa la versión nueva', () async {
+    test('tras sincronizar, la siguiente comparación usa la versión nueva',
+        () async {
       final s = await _sync(_remoto(version: 2));
       await s.cargarInicial();
       expect(await s.sincronizar(), isNotNull);
@@ -186,7 +205,11 @@ void main() {
   group('parámetros de apertura', () {
     test('uriVersion arma p, v, d y push en ese orden', () {
       expect(
-          uriVersion('https://w.test', plataforma: 'web', appVersion: '0.5.0', dataVersion: 1, push: false)
+          uriVersion('https://w.test',
+                  plataforma: 'web',
+                  appVersion: '0.5.0',
+                  dataVersion: 1,
+                  push: false)
               .toString(),
           'https://w.test/v1/version?p=web&v=0.5.0&d=1&push=0');
     });

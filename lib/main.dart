@@ -135,7 +135,7 @@ class _Glow extends StatelessWidget {
 /// Versión real de la app (pubspec), o null si no se pudo leer.
 Future<String?> _leerVersionApp() async {
   try {
-    final v = (await PackageInfo.fromPlatform()).version;
+    final v = (await PackageInfo.fromPlatform().timeout(const Duration(seconds: 2))).version;
     return v.isEmpty ? null : v;
   } catch (_) {
     debugPrint('[sync] sin versión de app');

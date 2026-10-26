@@ -53,7 +53,8 @@ class DatasetSync {
   final String _plataforma;
   final String _appVersion;
 
-  EstadoDatos _estado = const EstadoDatos(origen: OrigenDatos.semilla, dataVersion: 0);
+  EstadoDatos _estado =
+      const EstadoDatos(origen: OrigenDatos.semilla, dataVersion: 0);
   bool _inicializado = false;
 
   DatasetSync({
@@ -76,7 +77,11 @@ class DatasetSync {
 
   EstadoDatos get estado => _estado;
 
-  void _setEstado({OrigenDatos? origen, int? dataVersion, String? error, bool limpiarError = false}) {
+  void _setEstado(
+      {OrigenDatos? origen,
+      int? dataVersion,
+      String? error,
+      bool limpiarError = false}) {
     _estado = EstadoDatos(
       origen: origen ?? _estado.origen,
       dataVersion: dataVersion ?? _estado.dataVersion,
@@ -103,13 +108,16 @@ class DatasetSync {
     final cacheStr = _prefs.getString(claveCacheJson);
     final cacheVer = _prefs.getInt(claveCacheVersion);
     if (cacheStr != null || cacheVer != null) {
-      if (cacheStr != null && cacheVer != null && cacheVer > semilla.manifest.dataVersion) {
+      if (cacheStr != null &&
+          cacheVer != null &&
+          cacheVer > semilla.manifest.dataVersion) {
         try {
           final decoded = jsonDecode(cacheStr);
           if (decoded is Map<String, dynamic> && payloadValido(decoded)) {
             final d = datasetDesdeAllJson(decoded, _siglas);
             _inicializado = true;
-            _estado = EstadoDatos(origen: OrigenDatos.cache, dataVersion: d.manifest.dataVersion);
+            _estado = EstadoDatos(
+                origen: OrigenDatos.cache, dataVersion: d.manifest.dataVersion);
             return d;
           }
         } catch (e) {
@@ -127,7 +135,8 @@ class DatasetSync {
     }
 
     _inicializado = true;
-    _estado = EstadoDatos(origen: OrigenDatos.semilla, dataVersion: semilla.manifest.dataVersion);
+    _estado = EstadoDatos(
+        origen: OrigenDatos.semilla, dataVersion: semilla.manifest.dataVersion);
     return semilla;
   }
 
@@ -147,11 +156,16 @@ class DatasetSync {
     try {
       rv = await _client
           .get(uriVersion(_baseUrl,
-              plataforma: _plataforma, appVersion: _appVersion, dataVersion: local, push: false)).timeout(_timeout);
+              plataforma: _plataforma,
+              appVersion: _appVersion,
+              dataVersion: local,
+              push: false))
+          .timeout(_timeout);
     } catch (e) {
       return _fallo('/v1/version falló: ${e.runtimeType}');
     }
-    if (rv.statusCode != 200) return _fallo('/v1/version respondió ${rv.statusCode}');
+    if (rv.statusCode != 200)
+      return _fallo('/v1/version respondió ${rv.statusCode}');
     if (!(rv.headers['content-type'] ?? '').contains('application/json')) {
       return _fallo('/v1/version no devolvió JSON');
     }
@@ -168,29 +182,34 @@ class DatasetSync {
     _setEstado(limpiarError: true);
     if (remota <= local) {
       _estado = EstadoDatos(
-          origen: _estado.origen, dataVersion: _estado.dataVersion, ultimoIntento: DateTime.now());
+          origen: _estado.origen,
+          dataVersion: _estado.dataVersion,
+          ultimoIntento: DateTime.now());
       return null;
     }
 
     final http.Response ra;
     try {
-      ra = await _client
-          .get(Uri.parse('$_baseUrl/v1/all'), headers: {'If-None-Match': '"v$local"'})
-          .timeout(_timeout);
+      ra = await _client.get(Uri.parse('$_baseUrl/v1/all'),
+          headers: {'If-None-Match': '"v$local"'}).timeout(_timeout);
     } catch (e) {
       return _fallo('/v1/all falló: ${e.runtimeType}');
     }
     if (ra.statusCode == 304) {
       _estado = EstadoDatos(
-          origen: _estado.origen, dataVersion: _estado.dataVersion, ultimoIntento: DateTime.now());
+          origen: _estado.origen,
+          dataVersion: _estado.dataVersion,
+          ultimoIntento: DateTime.now());
       return null;
     }
-    if (ra.statusCode != 200) return _fallo('/v1/all respondió ${ra.statusCode}');
+    if (ra.statusCode != 200)
+      return _fallo('/v1/all respondió ${ra.statusCode}');
 
     final Map<String, dynamic> all;
     try {
       final decoded = jsonDecode(utf8.decode(ra.bodyBytes));
-      if (decoded is! Map<String, dynamic>) return _fallo('/v1/all no es un objeto JSON');
+      if (decoded is! Map<String, dynamic>)
+        return _fallo('/v1/all no es un objeto JSON');
       all = decoded;
     } catch (_) {
       return _fallo('/v1/all JSON inválido');
@@ -203,7 +222,8 @@ class DatasetSync {
       return _fallo('/v1/all no decodifica: ${e.runtimeType}');
     }
     final nueva = d.manifest.dataVersion;
-    if (nueva <= local) return _fallo('/v1/all trae data_version $nueva <= local $local');
+    if (nueva <= local)
+      return _fallo('/v1/all trae data_version $nueva <= local $local');
 
     await _prefs.setString(claveCacheJson, utf8.decode(ra.bodyBytes));
     await _prefs.setInt(claveCacheVersion, nueva);
