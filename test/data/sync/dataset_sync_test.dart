@@ -22,6 +22,7 @@ Future<DatasetSync> _sync(
   int semilla = 1,
   Map<String, Object> prefsIniciales = const {},
   Duration timeout = const Duration(seconds: 8),
+  String? appVersion,
 }) async {
   SharedPreferences.setMockInitialValues(prefsIniciales);
   final prefs = await SharedPreferences.getInstance();
@@ -32,6 +33,7 @@ Future<DatasetSync> _sync(
     siglas: const {},
     baseUrl: _base,
     timeout: timeout,
+    appVersion: appVersion ?? 'desconocido',
   );
 }
 
@@ -178,6 +180,42 @@ void main() {
       final s = await _sync(_noRed());
       expect(await s.sincronizar(), isNull);
       expect(s.estado.ultimoError, isNotNull);
+    });
+  });
+
+  group('parámetros de apertura', () {
+    test('uriVersion arma p, v, d y push en ese orden', () {
+      expect(
+          uriVersion('https://w.test', plataforma: 'web', appVersion: '0.5.0', dataVersion: 1, push: false)
+              .toString(),
+          'https://w.test/v1/version?p=web&v=0.5.0&d=1&push=0');
+    });
+
+    test('/v1/version lleva los 4 parámetros', () async {
+      Map<String, String>? q;
+      final c = MockClient((req) async {
+        if (req.url.path == '/v1/version') {
+          q = req.url.queryParameters;
+          return _json({'data_version': 1});
+        }
+        return http.Response('', 404);
+      });
+      final s = await _sync(c, appVersion: '0.5.0');
+      await s.cargarInicial();
+      await s.sincronizar();
+      expect(q, {'p': 'web', 'v': '0.5.0', 'd': '1', 'push': '0'});
+    });
+
+    test('sin appVersion explícito, v=desconocido', () async {
+      Map<String, String>? q;
+      final c = MockClient((req) async {
+        q = req.url.queryParameters;
+        return _json({'data_version': 1});
+      });
+      final s = await _sync(c);
+      await s.cargarInicial();
+      await s.sincronizar();
+      expect(q!['v'], 'desconocido');
     });
   });
 }

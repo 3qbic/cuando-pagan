@@ -22,6 +22,22 @@ class EstadoDatos {
   });
 }
 
+/// URL de `/v1/version` con solo dimensiones agregadas (plataforma, versión de
+/// app, versión de datos, push). Sin IDs, nonces ni marcas de tiempo.
+Uri uriVersion(
+  String baseUrl, {
+  required String plataforma,
+  required String appVersion,
+  required int dataVersion,
+  required bool push,
+}) =>
+    Uri.parse('$baseUrl/v1/version').replace(queryParameters: {
+      'p': plataforma,
+      'v': appVersion,
+      'd': '$dataVersion',
+      'push': push ? '1' : '0',
+    });
+
 /// Datos offline-first: arranca con el caché de `/v1/all` o la semilla
 /// empaquetada, y sincroniza con el Worker cuando hay una versión más nueva.
 class DatasetSync {
@@ -34,6 +50,8 @@ class DatasetSync {
   final Map<String, List<String>> _siglas;
   final String _baseUrl;
   final Duration _timeout;
+  final String _plataforma;
+  final String _appVersion;
 
   EstadoDatos _estado = const EstadoDatos(origen: OrigenDatos.semilla, dataVersion: 0);
   bool _inicializado = false;
@@ -45,12 +63,16 @@ class DatasetSync {
     required Map<String, List<String>> siglas,
     String baseUrl = kWorkerBaseUrl,
     Duration timeout = const Duration(seconds: 8),
+    String plataforma = 'web',
+    String appVersion = 'desconocido',
   })  : _client = client,
         _prefs = prefs,
         _leerSemilla = leerSemilla,
         _siglas = siglas,
         _baseUrl = baseUrl,
-        _timeout = timeout;
+        _timeout = timeout,
+        _plataforma = plataforma,
+        _appVersion = appVersion;
 
   EstadoDatos get estado => _estado;
 
@@ -123,7 +145,9 @@ class DatasetSync {
 
     final http.Response rv;
     try {
-      rv = await _client.get(Uri.parse('$_baseUrl/v1/version')).timeout(_timeout);
+      rv = await _client
+          .get(uriVersion(_baseUrl,
+              plataforma: _plataforma, appVersion: _appVersion, dataVersion: local, push: false)).timeout(_timeout);
     } catch (e) {
       return _fallo('/v1/version falló: ${e.runtimeType}');
     }

@@ -20,4 +20,7 @@ void main() {
         textoEstadoDatos(const EstadoDatos(origen: OrigenDatos.semilla, dataVersion: 1, ultimoError: 'x')),
         'Datos incluidos en la app · versión 1 · sin conexión con el servidor');
   });
+  test('textoVersionApp', () {
+    expect(textoVersionApp('0.5.0'), 'App versión 0.5.0');
+  });
 }

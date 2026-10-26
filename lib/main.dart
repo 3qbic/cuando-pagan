@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -130,13 +132,29 @@ class _Glow extends StatelessWidget {
 
 // ───────────────────────── Datos + lógica ─────────────────────────
 
-Future<DatasetSync> _crearSync(SharedPreferences prefs) async {
+/// Versión real de la app (pubspec), o null si no se pudo leer.
+Future<String?> _leerVersionApp() async {
+  try {
+    final v = (await PackageInfo.fromPlatform()).version;
+    return v.isEmpty ? null : v;
+  } catch (_) {
+    debugPrint('[sync] sin versión de app');
+    return null;
+  }
+}
+
+/// Línea discreta de Acerca con la versión real de la app.
+String textoVersionApp(String v) => 'App versión $v';
+
+Future<DatasetSync> _crearSync(SharedPreferences prefs, String? appVersion) async {
   final siglas = cargarSiglas(jsonDecode(await rootBundle.loadString('assets/data/siglas_entidades.json')) as Map<String, dynamic>);
   return DatasetSync(
     client: http.Client(),
     prefs: prefs,
     leerSemilla: () async => jsonDecode(await rootBundle.loadString('assets/seed/all.json')) as Map<String, dynamic>,
     siglas: siglas,
+    plataforma: kIsWeb ? 'web' : defaultTargetPlatform.name.toLowerCase(),
+    appVersion: appVersion ?? 'desconocido',
   );
 }
 
@@ -210,6 +228,7 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> {
   Dataset? _ds;
   EstadoDatos? _estado;
+  String? _appVersion;
   List<Seleccion> _ops = const [];
   Seleccion? _sel;        // institución que se está consultando (persistida o no)
   bool _recordar = true;  // ¿_sel guardada como favorita? (ganchito "recordar")
@@ -225,7 +244,8 @@ class _RootPageState extends State<RootPage> {
 
   Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
-    final sync = await _crearSync(prefs);
+    final appVersion = await _leerVersionApp();
+    final sync = await _crearSync(prefs, appVersion);
     final ds = await sync.cargarInicial();
     final token = prefs.getString(_kFavorita);
     final ack = prefs.getBool(_kDisclaimer) ?? false;
@@ -234,6 +254,7 @@ class _RootPageState extends State<RootPage> {
     setState(() {
       _ds = ds;
       _estado = sync.estado;
+      _appVersion = appVersion;
       _ops = _opciones(ds);
       _sel = sel;
       _recordar = sel != null; // si venía persistida, el ganchito arranca marcado
@@ -312,7 +333,7 @@ class _RootPageState extends State<RootPage> {
       body = switch (_tab) {
         1 => CalendarioTab(ds: _ds!, seleccion: _sel!),
         2 => DecimoTab(ds: _ds!),
-        3 => AcercaContenido(estado: _estado),
+        3 => AcercaContenido(estado: _estado, appVersion: _appVersion),
         _ => HomeTab(ds: _ds!, seleccion: _sel!, recordar: _recordar, onRecordar: _setRecordar, onCambiar: _cambiar),
       };
     }
@@ -323,7 +344,7 @@ class _RootPageState extends State<RootPage> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(children: [_Header(estado: _estado), Expanded(child: body)]),
+              child: Column(children: [_Header(estado: _estado, appVersion: _appVersion), Expanded(child: body)]),
             ),
           ),
         ),
@@ -334,8 +355,9 @@ class _RootPageState extends State<RootPage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({this.estado});
+  const _Header({this.estado, this.appVersion});
   final EstadoDatos? estado;
+  final String? appVersion;
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -348,7 +370,7 @@ class _Header extends StatelessWidget {
           label: 'Aviso: aplicación independiente, no oficial, no afiliada al Gobierno de Panamá. Toca para Acerca de.',
           child: InkWell(
             borderRadius: BorderRadius.circular(999),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado))),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado, appVersion: appVersion))),
             child: Container(
               constraints: const BoxConstraints(minHeight: 34),
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -363,7 +385,7 @@ class _Header extends StatelessWidget {
         ),
         IconButton(
           icon: const Icon(Icons.more_vert, color: _mid),
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado))),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado, appVersion: appVersion))),
         ),
       ]),
     );
@@ -1126,20 +1148,22 @@ Widget _enlace(BuildContext context, IconData icon, String texto, VoidCallback o
     );
 
 class AcercaContenido extends StatelessWidget {
-  const AcercaContenido({super.key, this.estado});
+  const AcercaContenido({super.key, this.estado, this.appVersion});
   final EstadoDatos? estado;
+  final String? appVersion;
   @override
-  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: _acercaHijos(context, estado));
+  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: _acercaHijos(context, estado, appVersion));
 }
 
 class AcercaDeScreen extends StatelessWidget {
-  const AcercaDeScreen({super.key, this.estado});
+  const AcercaDeScreen({super.key, this.estado, this.appVersion});
   final EstadoDatos? estado;
+  final String? appVersion;
   @override
-  Widget build(BuildContext context) => _legalScaffold(context, 'Acerca de', _acercaHijos(context, estado));
+  Widget build(BuildContext context) => _legalScaffold(context, 'Acerca de', _acercaHijos(context, estado, appVersion));
 }
 
-List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado) => [
+List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado, String? appVersion) => [
       const Text('App independiente y no oficial', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi, height: 1.15)),
       const SizedBox(height: 14),
       _seccion('Qué es', '«¿Cuándo Pagan?» es un proyecto independiente, gratuito y de código abierto que te muestra las fechas de pago del sector público de Panamá: jubilados, gastos de representación y grupos 1, 2 y 3.'),
@@ -1152,10 +1176,14 @@ List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado) => [
       _enlace(context, Icons.code, 'Código fuente (repositorio)', () => _abrir('https://$_repoUrl')),
       _enlace(context, Icons.mail_outline, 'Escríbenos: $_contacto', () => _abrir('mailto:$_contacto')),
       _enlace(context, Icons.language, 'Hecho por 3qbic', () => _abrir(_sitio3qbic)),
-      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.3.2', applicationLegalese: '© 2026 $_titular — Alexis García')),
+      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: appVersion, applicationLegalese: '© 2026 $_titular — Alexis García')),
       _enlace(context, Icons.privacy_tip_outlined, 'Política de privacidad', () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen()))),
       const SizedBox(height: 12),
       const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
+      if (appVersion != null) ...[
+        const SizedBox(height: 6),
+        Text(textoVersionApp(appVersion), style: const TextStyle(fontSize: 12, color: _mute, height: 1.4)),
+      ],
       if (estado != null) ...[
         const SizedBox(height: 6),
         Text(textoEstadoDatos(estado), style: const TextStyle(fontSize: 12, color: _mute, height: 1.4)),
