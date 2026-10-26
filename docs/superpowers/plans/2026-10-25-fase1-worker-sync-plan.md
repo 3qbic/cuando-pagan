@@ -39,6 +39,7 @@
 - [ ] **Step 1:** Correr `/Library/Frameworks/Python.framework/Versions/3.13/bin/python3 pipeline/scraper_mef.py`. Expected: lista 2019-S1…2025-S2 como `[NUEVO]`.
 - [ ] **Step 2:** Agregar a `procesados` las 14 claves `2019-S1` … `2025-S2` (orden cronológico, antes de `2026-S1`). En `descripcion`, aclarar que los históricos se marcan como procesados para no disparar alarmas aunque sus datos no estén en `data/`.
 - [ ] **Step 3:** Repetir el Step 1. Expected: ningún `[NUEVO]` y el mensaje de "sin pendientes" del script.
+- [ ] **Step 3b:** Agregar a `.gitignore`: `*service-account*.json`, `*firebase-adminsdk*.json`, `google-services.json`, `GoogleService-Info.plist` (prepara la Fase 3 en un repo público).
 - [ ] **Step 4:** Commit `chore(pipeline): marcar semestres históricos 2019–2025 como procesados`.
 
 ### Task 2: `datasetDesdeAllJson` — un solo decode de `/v1/all`
@@ -124,7 +125,7 @@
 - [ ] **Step 3:** Implementar:
   - `_init()`: crear `DatasetSync` (con `http.Client()`, `SharedPreferences`, semilla vía `rootBundle`, siglas de `assets/data/siglas_entidades.json`), `await cargarInicial()` y pintar. Luego `sincronizar()` **sin await** en el primer frame. Si devuelve un Dataset, `setState` para reemplazar `_ds` y `_ops` y re-resolver `_sel` con `Seleccion.fromToken` (si el token ya no existe, dejar `_sel = null`, sin crash).
   - `AcercaDeScreen`: una línea discreta con `textoEstadoDatos(sync.estado)`. Pasar el estado por constructor.
-  - `.github/workflows/ci.yml`: en `push` y `pull_request` a `main`/`develop`, `ubuntu-latest`, `subosito/flutter-action@v2` con `flutter-version: 3.41.4`, luego `flutter pub get`, `dart run tool/check_forbidden_deps.dart`, `flutter test`. **Sin secrets y sin deploy.**
+  - `.github/workflows/ci.yml`: en `push` y `pull_request` a `main`/`develop`, `ubuntu-latest`, `subosito/flutter-action@v2` con `flutter-version: 3.41.4`, luego `flutter pub get`, `dart run tool/check_forbidden_deps.dart`, `flutter test`. **Sin secrets y sin deploy.** Además: quitar `pubspec.lock` de `.gitignore` y commitearlo (CI reproducible; `app_database.g.dart` ya está trackeado).
 - [ ] **Step 4:** `flutter test` y `flutter analyze` (sin errores nuevos) → verde. Correr `flutter run -d chrome` y confirmar que abre con la semilla. Con el Worker aún no desplegado, el estado en Acerca debe decir `· sin conexión con el servidor`.
 - [ ] **Step 5:** Commit `feat(app): sync con el Worker al abrir + estado de datos en Acerca + CI de tests`.
 
@@ -154,6 +155,6 @@
   - `curl -s https://cuandopagan.3qbic.com/v1/all | python3 -c "import json,sys;d=json.load(sys.stdin);print(len(d['calendario']))"` → `120`.
   - `curl -s https://cuandopagan.3qbic.com/ | grep -c flutter_bootstrap` → `1` (la SPA sigue en Pages).
   - `curl -si https://cuandopagan.3qbic.com/privacidad/` → `200` HTML.
-  - `curl -s 'https://cuandopagan.3qbic.com/v1/status?live=1'` → JSON con `hay_nuevo: false`.
+  - (Informativo, NO es gate: depende del sitio del MEF) `curl -s 'https://cuandopagan.3qbic.com/v1/status?live=1'` → JSON; un 502 ahí no significa que el deploy falló.
 - [ ] **Step 5:** Release web (con aprobación del usuario): `release/0.4.0`, `flutter build web --release && cp site/privacidad.html build/web/privacidad/index.html && cd worker && npx wrangler pages deploy ../build/web --project-name=cuandopagan --branch=main --commit-dirty=true`. Verificar `curl -s https://cuandopagan.3qbic.com/version.json` → `"version":"0.4.0"`, y en el navegador que Acerca diga `Datos incluidos en la app · versión 1`, sin "sin conexión".
 - [ ] **Step 6:** Commit de release, merge a `main` + tag `v0.4.0` y merge a `develop`. Antes del push, correr el grep anti-secretos sobre `git log -p origin/main..main`.
