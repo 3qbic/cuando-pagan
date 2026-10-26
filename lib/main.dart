@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, debugPrint;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -130,13 +132,29 @@ class _Glow extends StatelessWidget {
 
 // ───────────────────────── Datos + lógica ─────────────────────────
 
-Future<DatasetSync> _crearSync(SharedPreferences prefs) async {
+/// Versión real de la app (pubspec), o null si no se pudo leer.
+Future<String?> _leerVersionApp() async {
+  try {
+    final v = (await PackageInfo.fromPlatform().timeout(const Duration(seconds: 2))).version;
+    return v.isEmpty ? null : v;
+  } catch (_) {
+    debugPrint('[sync] sin versión de app');
+    return null;
+  }
+}
+
+/// Línea discreta de Acerca con la versión real de la app.
+String textoVersionApp(String v) => 'App versión $v';
+
+Future<DatasetSync> _crearSync(SharedPreferences prefs, String? appVersion) async {
   final siglas = cargarSiglas(jsonDecode(await rootBundle.loadString('assets/data/siglas_entidades.json')) as Map<String, dynamic>);
   return DatasetSync(
     client: http.Client(),
     prefs: prefs,
     leerSemilla: () async => jsonDecode(await rootBundle.loadString('assets/seed/all.json')) as Map<String, dynamic>,
     siglas: siglas,
+    plataforma: kIsWeb ? 'web' : defaultTargetPlatform.name.toLowerCase(),
+    appVersion: appVersion ?? 'desconocido',
   );
 }
 
@@ -210,6 +228,7 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> {
   Dataset? _ds;
   EstadoDatos? _estado;
+  String? _appVersion;
   List<Seleccion> _ops = const [];
   Seleccion? _sel;        // institución que se está consultando (persistida o no)
   bool _recordar = true;  // ¿_sel guardada como favorita? (ganchito "recordar")
@@ -225,7 +244,10 @@ class _RootPageState extends State<RootPage> {
 
   Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
-    final sync = await _crearSync(prefs);
+    // La versión no bloquea el primer frame: en web package_info_plus pide
+    // version.json por red. Se resuelve en paralelo y se usa al sincronizar.
+    final versionF = _leerVersionApp();
+    final sync = await _crearSync(prefs, null);
     final ds = await sync.cargarInicial();
     final token = prefs.getString(_kFavorita);
     final ack = prefs.getBool(_kDisclaimer) ?? false;
@@ -241,10 +263,15 @@ class _RootPageState extends State<RootPage> {
       _cargando = false;
     });
     // Una sola vez por arranque, sin bloquear el primer frame; nunca lanza.
-    _sincronizar(sync, prefs);
+    _sincronizar(sync, prefs, versionF);
   }
 
-  Future<void> _sincronizar(DatasetSync sync, SharedPreferences prefs) async {
+  Future<void> _sincronizar(DatasetSync sync, SharedPreferences prefs, Future<String?> versionF) async {
+    final appVersion = await versionF; // nunca lanza (timeout 2 s en _leerVersionApp)
+    if (appVersion != null) {
+      sync.appVersion = appVersion;
+      if (mounted) setState(() => _appVersion = appVersion);
+    }
     final nuevo = await sync.sincronizar();
     if (!mounted) return;
     if (nuevo == null) {
@@ -312,7 +339,7 @@ class _RootPageState extends State<RootPage> {
       body = switch (_tab) {
         1 => CalendarioTab(ds: _ds!, seleccion: _sel!),
         2 => DecimoTab(ds: _ds!),
-        3 => AcercaContenido(estado: _estado),
+        3 => AcercaContenido(estado: _estado, appVersion: _appVersion),
         _ => HomeTab(ds: _ds!, seleccion: _sel!, recordar: _recordar, onRecordar: _setRecordar, onCambiar: _cambiar),
       };
     }
@@ -323,7 +350,7 @@ class _RootPageState extends State<RootPage> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(children: [_Header(estado: _estado), Expanded(child: body)]),
+              child: Column(children: [_Header(estado: _estado, appVersion: _appVersion), Expanded(child: body)]),
             ),
           ),
         ),
@@ -334,8 +361,9 @@ class _RootPageState extends State<RootPage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({this.estado});
+  const _Header({this.estado, this.appVersion});
   final EstadoDatos? estado;
+  final String? appVersion;
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -348,7 +376,7 @@ class _Header extends StatelessWidget {
           label: 'Aviso: aplicación independiente, no oficial, no afiliada al Gobierno de Panamá. Toca para Acerca de.',
           child: InkWell(
             borderRadius: BorderRadius.circular(999),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado))),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado, appVersion: appVersion))),
             child: Container(
               constraints: const BoxConstraints(minHeight: 34),
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -363,7 +391,7 @@ class _Header extends StatelessWidget {
         ),
         IconButton(
           icon: const Icon(Icons.more_vert, color: _mid),
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado))),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado, appVersion: appVersion))),
         ),
       ]),
     );
@@ -1126,36 +1154,42 @@ Widget _enlace(BuildContext context, IconData icon, String texto, VoidCallback o
     );
 
 class AcercaContenido extends StatelessWidget {
-  const AcercaContenido({super.key, this.estado});
+  const AcercaContenido({super.key, this.estado, this.appVersion});
   final EstadoDatos? estado;
+  final String? appVersion;
   @override
-  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: _acercaHijos(context, estado));
+  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: _acercaHijos(context, estado, appVersion));
 }
 
 class AcercaDeScreen extends StatelessWidget {
-  const AcercaDeScreen({super.key, this.estado});
+  const AcercaDeScreen({super.key, this.estado, this.appVersion});
   final EstadoDatos? estado;
+  final String? appVersion;
   @override
-  Widget build(BuildContext context) => _legalScaffold(context, 'Acerca de', _acercaHijos(context, estado));
+  Widget build(BuildContext context) => _legalScaffold(context, 'Acerca de', _acercaHijos(context, estado, appVersion));
 }
 
-List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado) => [
+List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado, String? appVersion) => [
       const Text('App independiente y no oficial', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi, height: 1.15)),
       const SizedBox(height: 14),
       _seccion('Qué es', '«¿Cuándo Pagan?» es un proyecto independiente, gratuito y de código abierto que te muestra las fechas de pago del sector público de Panamá: jubilados, gastos de representación y grupos 1, 2 y 3.'),
       _seccion('Qué NO es', 'No es una app oficial del Gobierno de Panamá. No está afiliada, patrocinada ni avalada por el MEF ni por ninguna entidad del Estado. No tramita ni resuelve pagos.'),
       _seccion('De dónde salen las fechas', 'Se transcriben de lo que el MEF publica en sus canales oficiales. Las fechas son referenciales; ante cualquier diferencia, prevalece la publicación oficial del MEF.'),
-      _seccion('Privacidad', 'No pedimos cuenta ni datos personales. En la web usamos analítica agregada y sin cookies (Cloudflare); la app móvil, no. Lo tuyo se queda en tu dispositivo.'),
+      _seccion('Privacidad', 'No pedimos cuenta ni datos personales. Contamos aperturas de forma anónima (sin IP ni identificadores). Tus preferencias se quedan en tu dispositivo.'),
       _seccion('Código abierto', 'El código y los datos son públicos y auditables.'),
       const SizedBox(height: 4),
       _enlace(context, Icons.open_in_new, 'Ver el calendario en el sitio del MEF', () => _abrir(_mefFullUrl)),
       _enlace(context, Icons.code, 'Código fuente (repositorio)', () => _abrir('https://$_repoUrl')),
       _enlace(context, Icons.mail_outline, 'Escríbenos: $_contacto', () => _abrir('mailto:$_contacto')),
       _enlace(context, Icons.language, 'Hecho por 3qbic', () => _abrir(_sitio3qbic)),
-      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: '0.3.2', applicationLegalese: '© 2026 $_titular — Alexis García')),
+      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: appVersion, applicationLegalese: '© 2026 $_titular — Alexis García')),
       _enlace(context, Icons.privacy_tip_outlined, 'Política de privacidad', () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen()))),
       const SizedBox(height: 12),
       const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
+      if (appVersion != null) ...[
+        const SizedBox(height: 6),
+        Text(textoVersionApp(appVersion), style: const TextStyle(fontSize: 12, color: _mute, height: 1.4)),
+      ],
       if (estado != null) ...[
         const SizedBox(height: 6),
         Text(textoEstadoDatos(estado), style: const TextStyle(fontSize: 12, color: _mute, height: 1.4)),
@@ -1167,13 +1201,13 @@ class PrivacidadScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _legalScaffold(context, 'Política de privacidad', [
         const Text('Política de privacidad', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi)),
-        const Text('Resumen: no recolectamos datos personales. Lo tuyo se queda en tu teléfono.', style: TextStyle(fontSize: 14, color: _mid)),
+        const Text('Resumen: no recolectamos datos personales. Tus preferencias se quedan en tu dispositivo; solo contamos aperturas de forma anónima.', style: TextStyle(fontSize: 14, color: _mid)),
         const SizedBox(height: 16),
         _seccion('1. Quiénes somos', 'App independiente, gratuita y de código abierto. No es oficial del Gobierno ni del MEF. Responsable: 3qbic (3qbic.com).'),
         _seccion('2. No recolectamos datos personales', 'Funciona en tu dispositivo. Sin cuenta. No pedimos nombre, cédula, teléfono ni correo. No usamos publicidad, rastreadores publicitarios ni perfiles de usuario.'),
         _seccion('3. Qué se guarda en tu dispositivo', 'Tu institución favorita, preferencias y una copia del calendario. Nunca sale de tu dispositivo.'),
-        _seccion('4. Conexión a internet', 'Descarga el calendario (datos públicos) desde infraestructura de 3qbic sobre Cloudflare. No se envían datos personales; Cloudflare procesa tu IP de forma técnica y temporal solo para entregar el contenido.'),
-        _seccion('5. Analítica (solo versión web)', 'La versión web (cuandopagan.3qbic.com) usa analítica agregada y sin cookies (Cloudflare Web Analytics): cuenta visitas y velocidad de carga de forma anónima, sin cookies, sin identificarte y sin seguirte entre sitios. La app móvil no incluye ninguna analítica.'),
+        _seccion('4. Conexión a internet', 'Descarga el calendario (datos públicos) y registra un conteo anónimo de aperturas, en infraestructura de 3qbic sobre Cloudflare. No se envían datos personales; Cloudflare procesa tu IP de forma técnica y temporal solo para entregar el contenido.'),
+        _seccion('5. Analítica de uso', 'La versión web (cuandopagan.3qbic.com) usa analítica agregada y sin cookies (Cloudflare Web Analytics): cuenta visitas y velocidad de carga de forma anónima, sin cookies, sin identificarte y sin seguirte entre sitios. Fuera del conteo anónimo de aperturas (descrito más abajo), la app no incluye ninguna analítica. Conteo anónimo de aperturas: cada vez que abres la app, esta avisa a nuestro servicio la plataforma (web, Android o iOS), la versión de la app, la versión del calendario que tiene y si tienes los recordatorios activados (sí o no). Con eso contamos cuántas aperturas hay por día. No guardamos tu dirección IP, ni un identificador tuyo o de tu dispositivo, ni nada que permita saber quién eres o seguirte. Ese conteo se guarda alrededor de 3 meses.'),
         _seccion('6. Tus derechos (Ley 81/2019)', 'Derechos ARCO. Como no almacenamos datos personales en servidores, tú controlas tu información en el dispositivo. Autoridad: ANTAI.'),
         _seccion('7. Contacto', '$_contacto · $_repoUrl'),
       ]);

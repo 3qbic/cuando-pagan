@@ -9,6 +9,7 @@ import manifest from "./data/manifest.json";
 import calendario from "./data/calendario.json";
 import grupos from "./data/grupos_entidades.json";
 import xiii from "./data/xiii_mes.json";
+import { dimensionesApertura, registrar } from "./metricas.js";
 import { fetchMefSemesters, keyNum, MEF_URL } from "./mef.js";
 
 const VERSION_TAG = `"v${manifest.data_version}"`; // ETag basado en data_version
@@ -19,12 +20,12 @@ const CORS = {
   "Access-Control-Allow-Headers": "Content-Type, If-None-Match",
 };
 
-function json(obj, { cacheSeconds = 3600, etag = VERSION_TAG, status = 200 } = {}) {
+function json(obj, { cacheSeconds = 3600, etag = VERSION_TAG, status = 200, noCache = false } = {}) {
   return new Response(JSON.stringify(obj), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": `public, max-age=${cacheSeconds}`,
+      "Cache-Control": noCache ? "no-cache" : `public, max-age=${cacheSeconds}`,
       ETag: etag,
       ...CORS,
     },
@@ -85,11 +86,19 @@ export default {
       return new Response("Method Not Allowed", { status: 405, headers: CORS });
     }
 
-    const path = new URL(request.url).pathname.replace(/\/+$/, "") || "/";
+    const url = new URL(request.url);
+    const path = url.pathname.replace(/\/+$/, "") || "/";
+
+    // Conteo anonimo de aperturas: ANTES del 304 para contar tambien las revalidaciones.
+    if (path === "/v1/version") {
+      const a = dimensionesApertura(url);
+      registrar(env, "apertura", [a.plataforma, a.version, a.push], [a.dataVersion]);
+    }
 
     // 304 solo para endpoints de datos (no para /v1/status, que cambia aparte)
     if (path !== "/v1/status" && request.headers.get("If-None-Match") === VERSION_TAG) {
-      return new Response(null, { status: 304, headers: { ETag: VERSION_TAG, ...CORS } });
+      const extra = path === "/v1/version" ? { "Cache-Control": "no-cache" } : {};
+      return new Response(null, { status: 304, headers: { ETag: VERSION_TAG, ...extra, ...CORS } });
     }
 
     switch (path) {
@@ -102,7 +111,7 @@ export default {
                       "/v1/calendario", "/v1/grupos", "/v1/xiii", "/v1/status"],
         }, { cacheSeconds: 300 });
       case "/v1/version":
-        return json(versionPayload, { cacheSeconds: 300 }); // cache corto: detecta cambios rapido
+        return json(versionPayload, { noCache: true }); // sin cache: cada apertura debe llegar al Worker (conteo)
       case "/v1/manifest":
         return json(manifest);
       case "/v1/all":

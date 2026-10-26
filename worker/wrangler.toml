@@ -12,10 +12,19 @@ routes = [{ pattern = "cuandopagan.3qbic.com/v1/*", zone_name = "3qbic.com" }]
 # Observabilidad gratis
 [observability]
 enabled = true
+# Privacidad: sin registros por invocación (guardarían IP y user-agent de cada
+# apertura 3 días); se conservan solo los console.log.
+[observability.logs]
+invocation_logs = false
 
 # Cron Trigger (gratis): revisa el MEF cada lunes 12:00 UTC.
 [triggers]
 crons = ["0 12 * * 1"]
+
+# Metricas agregadas (sin IP ni ID). Esquema en src/metricas.js.
+[[analytics_engine_datasets]]
+binding = "USO"
+dataset = "cuandopagan_uso"
 
 # KV OPCIONAL: si lo activas, el cron guarda el resultado y /v1/status lo sirve
 # sin re-consultar el MEF. Sin KV, /v1/status hace el chequeo en vivo igual.
