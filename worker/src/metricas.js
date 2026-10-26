@@ -21,7 +21,7 @@ export function dimensionesApertura(url) {
   const dNum = d !== null && /^\d{1,4}$/.test(d) ? Number(d) : 0;
   return {
     plataforma: p === null ? "desconocido" : PLATAFORMAS.has(p) ? p : "otro",
-    version: v === null ? "desconocido" : RE_VERSION.test(v) ? v : "otro",
+    version: v === null || v === "desconocido" ? "desconocido" : RE_VERSION.test(v) ? v : "otro",
     push: q.get("push") === "1" ? "1" : "0",
     dataVersion: dNum,
   };

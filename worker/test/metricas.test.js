@@ -14,6 +14,10 @@ test("sin query -> desconocido", () => {
     { plataforma: "desconocido", version: "desconocido", push: "0", dataVersion: 0 });
 });
 
+test("la app sin versión legible manda v=desconocido -> desconocido", () => {
+  assert.equal(dim("?p=web&v=desconocido&d=1&push=0").version, "desconocido");
+});
+
 test("valores invalidos -> otro / 0", () => {
   assert.deepEqual(dim("?p=xbox&v=<script>&d=-5&push=si"),
     { plataforma: "otro", version: "otro", push: "0", dataVersion: 0 });
