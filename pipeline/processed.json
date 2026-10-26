@@ -1,6 +1,20 @@
 {
-  "descripcion": "Semestres ya extraidos y publicados en data/. El scraper marca como NUEVO cualquier semestre del MEF que no este aqui.",
+  "descripcion": "Semestres ya extraidos y publicados en data/, mas los historicos 2019-S1 a 2025-S2 marcados como procesados para no disparar alarmas de NUEVO, aunque sus datos no esten en data/ (data/ solo contiene 2026-S1 y 2026-S2). El scraper marca como NUEVO cualquier semestre del MEF que no este aqui.",
   "procesados": [
+    "2019-S1",
+    "2019-S2",
+    "2020-S1",
+    "2020-S2",
+    "2021-S1",
+    "2021-S2",
+    "2022-S1",
+    "2022-S2",
+    "2023-S1",
+    "2023-S2",
+    "2024-S1",
+    "2024-S2",
+    "2025-S1",
+    "2025-S2",
     "2026-S1",
     "2026-S2"
   ]
