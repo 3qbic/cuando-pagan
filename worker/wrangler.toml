@@ -5,11 +5,9 @@ compatibility_date = "2026-06-26"
 # Worker Route: solo /v1/* del dominio de la app; la SPA y /privacidad/ siguen en Pages.
 routes = [{ pattern = "cuandopagan.3qbic.com/v1/*", zone_name = "3qbic.com" }]
 
-# JSON se importa como modulo (esbuild lo empaqueta). No requiere KV ni R2.
-# Datos generados por pipeline/build_dataset.py -> worker/src/data/*.json
-rules = [
-  { type = "Text", globs = ["**/*.json"], fallthrough = true }
-]
+# JSON se importa como modulo (esbuild lo empaqueta como objeto; NO agregar una
+# regla "Text" para *.json: lo volveria string y el Worker no arranca).
+# No requiere KV ni R2. Datos generados por pipeline/build_dataset.py -> worker/src/data/*.json
 
 # Observabilidad gratis
 [observability]
@@ -32,4 +30,5 @@ crons = ["0 12 * * 1"]
 # 1) npm install
 # 2) python ../pipeline/build_dataset.py   (regenera worker/src/data/)
 # 3) npx wrangler deploy
-# URL final: https://calendario-pago-pa.<tu-subdominio>.workers.dev
+# URL final: el Worker se sirve en https://cuandopagan.3qbic.com/v1/* mediante la Route
+# (la URL por defecto de workers.dev tambien puede existir).
