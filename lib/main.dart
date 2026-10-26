@@ -12,15 +12,13 @@ import 'core/text/normalizar.dart';
 import 'core/time/hoy_panama.dart';
 import 'core/time/tz.dart';
 import 'core/constants/umbrales.dart';
+import 'data/dataset.dart';
 import 'data/mappers.dart';
 import 'domain/entities/categoria.dart';
-import 'domain/entities/entidad.dart';
 import 'domain/entities/entrada_calendario.dart';
 import 'domain/entities/estado_fecha.dart';
 import 'domain/entities/evento_pago.dart';
-import 'domain/entities/manifest.dart';
 import 'domain/entities/seleccion.dart';
-import 'domain/entities/xiii_mes.dart';
 import 'domain/logic/proximo_evento.dart';
 
 void main() async {
@@ -130,23 +128,10 @@ class _Glow extends StatelessWidget {
 
 // ───────────────────────── Datos + lógica ─────────────────────────
 
-class Dataset {
-  final Manifest manifest;
-  final List<EntradaCalendario> calendario;
-  final List<Entidad> entidades;
-  final List<XiiiMes> xiii;
-  Dataset(this.manifest, this.calendario, this.entidades, this.xiii);
-}
-
 Future<Dataset> _cargar() async {
   final all = jsonDecode(await rootBundle.loadString('assets/seed/all.json')) as Map<String, dynamic>;
   final siglas = cargarSiglas(jsonDecode(await rootBundle.loadString('assets/data/siglas_entidades.json')) as Map<String, dynamic>);
-  final manifest = manifestFromJson(all['manifest'] as Map<String, dynamic>);
-  final cal = (all['calendario'] as List).map((e) => entradaFromJson(e as Map<String, dynamic>)).toList();
-  final ents = construirEntidades(all['grupos_entidades'] as List, siglas);
-  final xiii = (all['xiii_mes'] as List).map((e) => xiiiFromJson(e as Map<String, dynamic>)).toList()
-    ..sort((a, b) => a.fechaDate.compareTo(b.fechaDate));
-  return Dataset(manifest, cal, ents, xiii);
+  return datasetDesdeAllJson(all, siglas);
 }
 
 List<Seleccion> _opciones(Dataset ds) {
