@@ -51,7 +51,7 @@ class DatasetSync {
   final String _baseUrl;
   final Duration _timeout;
   final String _plataforma;
-  final String _appVersion;
+  String _appVersion;
 
   EstadoDatos _estado =
       const EstadoDatos(origen: OrigenDatos.semilla, dataVersion: 0);
@@ -76,6 +76,10 @@ class DatasetSync {
         _appVersion = appVersion;
 
   EstadoDatos get estado => _estado;
+
+  /// Versión de la app, resuelta de forma diferida: se lee al sincronizar, así
+  /// el primer frame no espera a `package_info_plus` (en web hace una petición).
+  set appVersion(String v) => _appVersion = v;
 
   void _setEstado(
       {OrigenDatos? origen,

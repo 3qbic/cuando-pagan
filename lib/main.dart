@@ -244,8 +244,10 @@ class _RootPageState extends State<RootPage> {
 
   Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
-    final appVersion = await _leerVersionApp();
-    final sync = await _crearSync(prefs, appVersion);
+    // La versión no bloquea el primer frame: en web package_info_plus pide
+    // version.json por red. Se resuelve en paralelo y se usa al sincronizar.
+    final versionF = _leerVersionApp();
+    final sync = await _crearSync(prefs, null);
     final ds = await sync.cargarInicial();
     final token = prefs.getString(_kFavorita);
     final ack = prefs.getBool(_kDisclaimer) ?? false;
@@ -254,7 +256,6 @@ class _RootPageState extends State<RootPage> {
     setState(() {
       _ds = ds;
       _estado = sync.estado;
-      _appVersion = appVersion;
       _ops = _opciones(ds);
       _sel = sel;
       _recordar = sel != null; // si venía persistida, el ganchito arranca marcado
@@ -262,10 +263,15 @@ class _RootPageState extends State<RootPage> {
       _cargando = false;
     });
     // Una sola vez por arranque, sin bloquear el primer frame; nunca lanza.
-    _sincronizar(sync, prefs);
+    _sincronizar(sync, prefs, versionF);
   }
 
-  Future<void> _sincronizar(DatasetSync sync, SharedPreferences prefs) async {
+  Future<void> _sincronizar(DatasetSync sync, SharedPreferences prefs, Future<String?> versionF) async {
+    final appVersion = await versionF; // nunca lanza (timeout 2 s en _leerVersionApp)
+    if (appVersion != null) {
+      sync.appVersion = appVersion;
+      if (mounted) setState(() => _appVersion = appVersion);
+    }
     final nuevo = await sync.sincronizar();
     if (!mounted) return;
     if (nuevo == null) {
@@ -1201,7 +1207,7 @@ class PrivacidadScreen extends StatelessWidget {
         _seccion('2. No recolectamos datos personales', 'Funciona en tu dispositivo. Sin cuenta. No pedimos nombre, cédula, teléfono ni correo. No usamos publicidad, rastreadores publicitarios ni perfiles de usuario.'),
         _seccion('3. Qué se guarda en tu dispositivo', 'Tu institución favorita, preferencias y una copia del calendario. Nunca sale de tu dispositivo.'),
         _seccion('4. Conexión a internet', 'Descarga el calendario (datos públicos) y registra un conteo anónimo de aperturas, en infraestructura de 3qbic sobre Cloudflare. No se envían datos personales; Cloudflare procesa tu IP de forma técnica y temporal solo para entregar el contenido.'),
-        _seccion('5. Analítica de uso', 'La versión web (cuandopagan.3qbic.com) usa analítica agregada y sin cookies (Cloudflare Web Analytics): cuenta visitas y velocidad de carga de forma anónima, sin cookies, sin identificarte y sin seguirte entre sitios. Fuera de este conteo anónimo, la app no incluye ninguna analítica. Conteo anónimo de aperturas: cada vez que abres la app, esta avisa a nuestro servicio la plataforma (web, Android o iOS), la versión de la app, la versión del calendario que tiene y si tienes los recordatorios activados (sí o no). Con eso contamos cuántas aperturas hay por día. No guardamos tu dirección IP, ni un identificador tuyo o de tu dispositivo, ni nada que permita saber quién eres o seguirte.'),
+        _seccion('5. Analítica de uso', 'La versión web (cuandopagan.3qbic.com) usa analítica agregada y sin cookies (Cloudflare Web Analytics): cuenta visitas y velocidad de carga de forma anónima, sin cookies, sin identificarte y sin seguirte entre sitios. Fuera del conteo anónimo de aperturas (descrito más abajo), la app no incluye ninguna analítica. Conteo anónimo de aperturas: cada vez que abres la app, esta avisa a nuestro servicio la plataforma (web, Android o iOS), la versión de la app, la versión del calendario que tiene y si tienes los recordatorios activados (sí o no). Con eso contamos cuántas aperturas hay por día. No guardamos tu dirección IP, ni un identificador tuyo o de tu dispositivo, ni nada que permita saber quién eres o seguirte. Ese conteo se guarda alrededor de 3 meses.'),
         _seccion('6. Tus derechos (Ley 81/2019)', 'Derechos ARCO. Como no almacenamos datos personales en servidores, tú controlas tu información en el dispositivo. Autoridad: ANTAI.'),
         _seccion('7. Contacto', '$_contacto · $_repoUrl'),
       ]);

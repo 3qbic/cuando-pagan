@@ -229,6 +229,19 @@ void main() {
       expect(q, {'p': 'web', 'v': '0.5.0', 'd': '1', 'push': '0'});
     });
 
+    test('appVersion asignada después de cargarInicial se usa al sincronizar', () async {
+      Map<String, String>? q;
+      final c = MockClient((req) async {
+        q = req.url.queryParameters;
+        return _json({'data_version': 1});
+      });
+      final s = await _sync(c);
+      await s.cargarInicial();
+      s.appVersion = '0.6.1';
+      await s.sincronizar();
+      expect(q!['v'], '0.6.1');
+    });
+
     test('sin appVersion explícito, v=desconocido', () async {
       Map<String, String>? q;
       final c = MockClient((req) async {

@@ -45,6 +45,10 @@ Luego define las variables:
 
 def consultas(dias: int) -> dict:
     """SQL de cada sección. Conteos siempre con SUM(_sample_interval)."""
+    # OJO: el peso manual con _sample_interval es correcto para el endpoint
+    # legado /analytics_engine/sql que se usa aquí. Si se migra a la API SQL
+    # nueva (events.analyticsEngine.*), que ya aplica los pesos por sí misma,
+    # hay que quitarlo o se cuenta doble.
     ventana = f"timestamp > NOW() - INTERVAL '{int(dias)}' DAY"
     # Panamá es UTC-5 fijo (sin horario de verano): se agrupa por día local en SQL.
     dia_pa = "toStartOfDay(timestamp - INTERVAL '5' HOUR)"

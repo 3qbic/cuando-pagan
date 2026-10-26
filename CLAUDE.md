@@ -30,7 +30,7 @@ npx wrangler login      # primera vez
 npx wrangler deploy     # publica -> https://calendario-pago-pa.<subdominio>.workers.dev
 ```
 
-Requisitos: Python 3.x con `requests` y `duckdb`; Node 18+ / npm; cuenta Cloudflare (free) para desplegar.
+Requisitos: Python 3.x con `requests` y `duckdb`; Node 22+ / npm; cuenta Cloudflare (free) para desplegar.
 
 No hay suite de tests automatizada. La "prueba" del pipeline es la validación de 60 filas/semestre dentro de `build_dataset.py`.
 

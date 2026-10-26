@@ -155,7 +155,7 @@ Infra a costo **$0**. El Worker empaqueta los JSON y los sirve desde el borde (C
 #### Endpoints del Worker (`worker/src/index.js`)
 | Ruta | Devuelve | Uso |
 |------|----------|-----|
-| `/v1/version` | `{data_version, fecha, semestres}` (~100 B) | **La app llama esto al abrir.** Cache 5 min |
+| `/v1/version` | `{data_version, fecha, semestres}` (~100 B) | **La app llama esto al abrir.** Sin caché (revalida siempre; el 304 es barato). Cada llamada se cuenta de forma anónima en Analytics Engine |
 | `/v1/all` | manifest + calendario + grupos + xiii (~27 KB) | UN solo request trae todo el dataset |
 | `/v1/manifest` | manifest.json | Metadatos |
 | `/v1/calendario` | array tidy completo | Datos principales |
