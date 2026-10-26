@@ -17,6 +17,11 @@ enabled = true
 [triggers]
 crons = ["0 12 * * 1"]
 
+# Metricas agregadas (sin IP ni ID). Esquema en src/metricas.js.
+[[analytics_engine_datasets]]
+binding = "USO"
+dataset = "cuandopagan_uso"
+
 # KV OPCIONAL: si lo activas, el cron guarda el resultado y /v1/status lo sirve
 # sin re-consultar el MEF. Sin KV, /v1/status hace el chequeo en vivo igual.
 # Para activarlo:
