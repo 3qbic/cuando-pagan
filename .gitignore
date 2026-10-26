@@ -16,7 +16,6 @@ __pycache__/
 build/
 .flutter-plugins
 .flutter-plugins-dependencies
-pubspec.lock
 *.iml
 .idea/
 .metadata

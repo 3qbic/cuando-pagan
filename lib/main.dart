@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:http/http.dart' as http;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -14,6 +15,7 @@ import 'core/time/tz.dart';
 import 'core/constants/umbrales.dart';
 import 'data/dataset.dart';
 import 'data/mappers.dart';
+import 'data/sync/dataset_sync.dart';
 import 'domain/entities/categoria.dart';
 import 'domain/entities/entrada_calendario.dart';
 import 'domain/entities/estado_fecha.dart';
@@ -128,10 +130,24 @@ class _Glow extends StatelessWidget {
 
 // ───────────────────────── Datos + lógica ─────────────────────────
 
-Future<Dataset> _cargar() async {
-  final all = jsonDecode(await rootBundle.loadString('assets/seed/all.json')) as Map<String, dynamic>;
+Future<DatasetSync> _crearSync(SharedPreferences prefs) async {
   final siglas = cargarSiglas(jsonDecode(await rootBundle.loadString('assets/data/siglas_entidades.json')) as Map<String, dynamic>);
-  return datasetDesdeAllJson(all, siglas);
+  return DatasetSync(
+    client: http.Client(),
+    prefs: prefs,
+    leerSemilla: () async => jsonDecode(await rootBundle.loadString('assets/seed/all.json')) as Map<String, dynamic>,
+    siglas: siglas,
+  );
+}
+
+/// Texto discreto con el origen y la versión de los datos (pantalla Acerca de).
+String textoEstadoDatos(EstadoDatos e) {
+  final base = switch (e.origen) {
+    OrigenDatos.semilla => 'Datos incluidos en la app · versión ${e.dataVersion}',
+    OrigenDatos.cache => 'Datos guardados · versión ${e.dataVersion}',
+    OrigenDatos.sincronizado => 'Actualizado · versión ${e.dataVersion}',
+  };
+  return e.ultimoError == null ? base : '$base · sin conexión con el servidor';
 }
 
 List<Seleccion> _opciones(Dataset ds) {
@@ -193,6 +209,7 @@ class RootPage extends StatefulWidget {
 
 class _RootPageState extends State<RootPage> {
   Dataset? _ds;
+  EstadoDatos? _estado;
   List<Seleccion> _ops = const [];
   Seleccion? _sel;        // institución que se está consultando (persistida o no)
   bool _recordar = true;  // ¿_sel guardada como favorita? (ganchito "recordar")
@@ -207,19 +224,45 @@ class _RootPageState extends State<RootPage> {
   }
 
   Future<void> _init() async {
-    final ds = await _cargar();
     final prefs = await SharedPreferences.getInstance();
+    final sync = await _crearSync(prefs);
+    final ds = await sync.cargarInicial();
     final token = prefs.getString(_kFavorita);
     final ack = prefs.getBool(_kDisclaimer) ?? false;
     final sel = token == null ? null : Seleccion.fromToken(token, ds.entidades);
     if (!mounted) return;
     setState(() {
       _ds = ds;
+      _estado = sync.estado;
       _ops = _opciones(ds);
       _sel = sel;
       _recordar = sel != null; // si venía persistida, el ganchito arranca marcado
       _ack = ack;
       _cargando = false;
+    });
+    // Una sola vez por arranque, sin bloquear el primer frame; nunca lanza.
+    _sincronizar(sync, prefs);
+  }
+
+  Future<void> _sincronizar(DatasetSync sync, SharedPreferences prefs) async {
+    final nuevo = await sync.sincronizar();
+    if (!mounted) return;
+    if (nuevo == null) {
+      setState(() => _estado = sync.estado);
+      return;
+    }
+    final token = prefs.getString(_kFavorita);
+    setState(() {
+      _ds = nuevo;
+      _ops = _opciones(nuevo);
+      _estado = sync.estado;
+      // Si la institución ya no existe en los datos nuevos, se deja sin selección.
+      final actual = _sel;
+      if (actual != null) {
+        _sel = Seleccion.fromToken(actual.toToken(), nuevo.entidades);
+      } else if (token != null) {
+        _sel = Seleccion.fromToken(token, nuevo.entidades);
+      }
     });
   }
 
@@ -269,7 +312,7 @@ class _RootPageState extends State<RootPage> {
       body = switch (_tab) {
         1 => CalendarioTab(ds: _ds!, seleccion: _sel!),
         2 => DecimoTab(ds: _ds!),
-        3 => const AcercaContenido(),
+        3 => AcercaContenido(estado: _estado),
         _ => HomeTab(ds: _ds!, seleccion: _sel!, recordar: _recordar, onRecordar: _setRecordar, onCambiar: _cambiar),
       };
     }
@@ -280,7 +323,7 @@ class _RootPageState extends State<RootPage> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(children: [const _Header(), Expanded(child: body)]),
+              child: Column(children: [_Header(estado: _estado), Expanded(child: body)]),
             ),
           ),
         ),
@@ -291,7 +334,8 @@ class _RootPageState extends State<RootPage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  const _Header({this.estado});
+  final EstadoDatos? estado;
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -304,7 +348,7 @@ class _Header extends StatelessWidget {
           label: 'Aviso: aplicación independiente, no oficial, no afiliada al Gobierno de Panamá. Toca para Acerca de.',
           child: InkWell(
             borderRadius: BorderRadius.circular(999),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AcercaDeScreen())),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado))),
             child: Container(
               constraints: const BoxConstraints(minHeight: 34),
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -319,7 +363,7 @@ class _Header extends StatelessWidget {
         ),
         IconButton(
           icon: const Icon(Icons.more_vert, color: _mid),
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AcercaDeScreen())),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado))),
         ),
       ]),
     );
@@ -1082,18 +1126,20 @@ Widget _enlace(BuildContext context, IconData icon, String texto, VoidCallback o
     );
 
 class AcercaContenido extends StatelessWidget {
-  const AcercaContenido({super.key});
+  const AcercaContenido({super.key, this.estado});
+  final EstadoDatos? estado;
   @override
-  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: _acercaHijos(context));
+  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: _acercaHijos(context, estado));
 }
 
 class AcercaDeScreen extends StatelessWidget {
-  const AcercaDeScreen({super.key});
+  const AcercaDeScreen({super.key, this.estado});
+  final EstadoDatos? estado;
   @override
-  Widget build(BuildContext context) => _legalScaffold(context, 'Acerca de', _acercaHijos(context));
+  Widget build(BuildContext context) => _legalScaffold(context, 'Acerca de', _acercaHijos(context, estado));
 }
 
-List<Widget> _acercaHijos(BuildContext context) => [
+List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado) => [
       const Text('App independiente y no oficial', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi, height: 1.15)),
       const SizedBox(height: 14),
       _seccion('Qué es', '«¿Cuándo Pagan?» es un proyecto independiente, gratuito y de código abierto que te muestra las fechas de pago del sector público de Panamá: jubilados, gastos de representación y grupos 1, 2 y 3.'),
@@ -1110,6 +1156,10 @@ List<Widget> _acercaHijos(BuildContext context) => [
       _enlace(context, Icons.privacy_tip_outlined, 'Política de privacidad', () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen()))),
       const SizedBox(height: 12),
       const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
+      if (estado != null) ...[
+        const SizedBox(height: 6),
+        Text(textoEstadoDatos(estado), style: const TextStyle(fontSize: 12, color: _mute, height: 1.4)),
+      ],
     ];
 
 class PrivacidadScreen extends StatelessWidget {
