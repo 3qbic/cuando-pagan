@@ -14,6 +14,9 @@ Datos tabulados + "API" serverless para responder **"¿cuándo le pagan a tal in
 # Regenerar TODOS los datos (CSV raíz + data/*.json + worker/src/data/*.json + manifest)
 python pipeline/build_dataset.py        # valida 60 filas/semestre; aborta si no cuadra
 
+# Métricas anónimas de aperturas (Analytics Engine, dataset cuandopagan_uso)
+python scripts/metricas.py [--dias N]   # requiere CLOUDFLARE_ACCOUNT_ID y CF_METRICAS_TOKEN en el entorno
+
 # ¿El MEF publicó un semestre nuevo?
 python pipeline/scraper_mef.py          # reporta; exit code 10 si hay pendientes
 python pipeline/scraper_mef.py --download   # baja los PDF nuevos a pipeline/descargas/
@@ -27,7 +30,7 @@ npx wrangler login      # primera vez
 npx wrangler deploy     # publica -> https://calendario-pago-pa.<subdominio>.workers.dev
 ```
 
-Requisitos: Python 3.x con `requests` y `duckdb`; Node 18+ / npm; cuenta Cloudflare (free) para desplegar.
+Requisitos: Python 3.x con `requests` y `duckdb`; Node 22+ / npm; cuenta Cloudflare (free) para desplegar.
 
 No hay suite de tests automatizada. La "prueba" del pipeline es la validación de 60 filas/semestre dentro de `build_dataset.py`.
 
@@ -64,7 +67,7 @@ python pipeline/build_dataset.py && python -c "import json,pathlib; d=pathlib.Pa
 
 **Invariantes no negociables** (de §0.1 del spec): cero SDKs de tracking/analytics/ads (hay check de CI; `AD_ID` removido del manifiesto); todo "hoy"/contador usa `America/Panamá` **fijo** (UTC-5, sin DST), nunca la zona del dispositivo; `fecha_pago` **verbatim** (sin corrimiento por fin de semana/feriado); parsing de wire **tolerante** (`fromWire` nunca crashea, default seguro); capa de **siglas curada** en `assets/data/siglas_entidades.json` (separada del dato — "MIDES"→"Min. de Desarrollo Social"); **XIII Mes bajo demanda** (solo al buscarlo); modelo de fecha v1 = "solo fuente pública" (`Estimada` dormido). Targets: Android `minSdk 24`, iOS 16.
 
-**Estado:** app web publicada en `cuandopagan.3qbic.com` (v0.4.0), UI completa. La web sincroniza con `lib/data/sync/dataset_sync.dart` (caché en SharedPreferences de `/v1/all`, offline-first) contra el Worker, que se sirve vía Worker Route en `cuandopagan.3qbic.com/v1/*` (la SPA y `/privacidad/` siguen en Pages). El repo drift del Plan 1 se conserva para Android futuro; de las costuras de integración, las #1–#3 siguen abiertas solo para esa ruta drift/Android. CI en `.github/workflows/ci.yml`: tests + gate de deps prohibidas (sin deploy). Próximas fases: `docs/superpowers/specs/2026-10-25-push-recordatorios-y-metricas-design.md`.
+**Estado:** app web publicada en `cuandopagan.3qbic.com` (v0.5.0), UI completa. La web sincroniza con `lib/data/sync/dataset_sync.dart` (caché en SharedPreferences de `/v1/all`, offline-first) contra el Worker, que se sirve vía Worker Route en `cuandopagan.3qbic.com/v1/*` (la SPA y `/privacidad/` siguen en Pages). El repo drift del Plan 1 se conserva para Android futuro; de las costuras de integración, las #1–#3 siguen abiertas solo para esa ruta drift/Android. CI en `.github/workflows/ci.yml`: tests + gate de deps prohibidas (sin deploy). Métricas anónimas de aperturas en Analytics Engine (`cuandopagan_uso`); consulta con `python scripts/metricas.py [--dias N]`, que necesita `CLOUDFLARE_ACCOUNT_ID` y `CF_METRICAS_TOKEN` en el entorno (nunca en el repo). Próximas fases: `docs/superpowers/specs/2026-10-25-push-recordatorios-y-metricas-design.md`.
 
 ## Procesar un semestre nuevo (runbook anual)
 

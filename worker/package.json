@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "test": "node --test \"test/*.test.js\"",
     "deploy": "wrangler deploy",
     "data": "python ../pipeline/build_dataset.py"
   },

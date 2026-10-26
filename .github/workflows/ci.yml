@@ -18,3 +18,13 @@ jobs:
       - run: flutter pub get
       - run: dart run tool/check_forbidden_deps.dart
       - run: flutter test
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests del Worker
+        run: cd worker && npm ci && npm test
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Tests de scripts/metricas.py
+        run: python3 -m unittest scripts/test_metricas.py
