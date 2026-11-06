@@ -137,7 +137,6 @@ class _Glow extends StatelessWidget {
 
 // ───────────────────────── Datos + lógica ─────────────────────────
 
-/// Versión real de la app (pubspec), o null si no se pudo leer.
 /// Versión publicada en el servidor (version.json). Si su build es mayor que el
 /// de esta copia, devuelve su número: hay una versión nueva. Nunca lanza.
 Future<String?> _versionNuevaEnServidor() async {
@@ -167,12 +166,13 @@ Future<DatasetSync> _crearSync(SharedPreferences prefs, String? appVersion) asyn
   );
 }
 
-/// Texto discreto con el origen y la versión de los datos (pantalla Acerca de).
+/// Edición del calendario de pagos (independiente de la versión de la app; sube
+/// cuando se publican fechas nuevas, sin reinstalar nada).
 String textoEstadoDatos(EstadoDatos e) {
   final base = switch (e.origen) {
-    OrigenDatos.semilla => 'Datos incluidos en la app · versión ${e.dataVersion}',
-    OrigenDatos.cache => 'Datos guardados · versión ${e.dataVersion}',
-    OrigenDatos.sincronizado => 'Actualizado · versión ${e.dataVersion}',
+    OrigenDatos.semilla => 'Calendario de pagos: edición ${e.dataVersion} (la que trae la app)',
+    OrigenDatos.cache => 'Calendario de pagos: edición ${e.dataVersion} (guardada)',
+    OrigenDatos.sincronizado => 'Calendario de pagos: edición ${e.dataVersion} (al día)',
   };
   return e.ultimoError == null ? base : '$base · sin conexión con el servidor';
 }
