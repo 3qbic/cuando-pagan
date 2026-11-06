@@ -50,12 +50,38 @@
     }
   </script>
   <script>
+    // Versión nueva al volver a la app: Android/iOS dejan la PWA instalada
+    // dormida en memoria y al reabrirla no recargan. Al volver a primer plano
+    // (y cada hora si sigue abierta) se compara version.json con la versión con
+    // que arrancó; si cambió, se recarga. Así nadie se queda en una versión vieja.
+    (function () {
+      var inicial = null, ultimo = 0;
+      function leer() {
+        return fetch('version.json?t=' + Date.now(), { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (j) { return j && (j.version + '+' + j.build_number); })
+          .catch(function () { return null; });
+      }
+      leer().then(function (v) { inicial = v; ultimo = Date.now(); });
+      function revisar() {
+        if (!inicial || document.visibilityState !== 'visible' || Date.now() - ultimo < 60000) return;
+        ultimo = Date.now();
+        leer().then(function (v) { if (v && v !== inicial) window.location.reload(); });
+      }
+      document.addEventListener('visibilitychange', revisar);
+      setInterval(revisar, 3600000);
+    })();
+  </script>
+  <script>
     // Aviso "instala la app": guarda el prompt de Chrome Android y expone el
     // estado a Flutter (lib/core/pwa/pwa_web.dart). Sin rastreo: nada sale del navegador.
     (function () {
       var promptGuardado = null;
-      window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); promptGuardado = e; });
-      window.addEventListener('appinstalled', function () { promptGuardado = null; });
+      var subs = [];
+      function avisar() { subs.forEach(function (f) { try { f(); } catch (e) {} }); }
+      window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); promptGuardado = e; avisar(); });
+      window.addEventListener('appinstalled', function () { promptGuardado = null; avisar(); });
+      window.cpPwaAlCambiar = function (f) { subs.push(f); };
       window.cpPwaEstado = function () {
         var ua = navigator.userAgent || '';
         var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
