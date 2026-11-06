@@ -4,52 +4,76 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cuando_pagan/core/pwa/pwa.dart';
 import 'package:cuando_pagan/main.dart';
 
-Future<void> _montar(WidgetTester t, EstadoPwa e) async {
-  await t.pumpWidget(MaterialApp(home: Scaffold(body: AvisoInstalar(estadoInicial: e))));
+final _hoy = DateTime(2026, 11, 6);
+
+Future<void> _montar(WidgetTester t, EstadoPwa e, {DateTime? hoy}) async {
+  await t.pumpWidget(const SizedBox()); // estado nuevo en cada montaje
+  await t.pumpWidget(MaterialApp(
+    home: Scaffold(
+      body: Stack(children: [
+        Positioned(left: 0, right: 0, bottom: 0,
+            child: BarraInstalar(estadoInicial: e, retrasoPrimeraVisita: Duration.zero, hoy: hoy ?? _hoy)),
+      ]),
+    ),
+  ));
   await t.pumpAndSettle();
 }
+
+bool _visible(WidgetTester t) =>
+    t.widget<AnimatedOpacity>(find.descendant(of: find.byType(BarraInstalar), matching: find.byType(AnimatedOpacity))).opacity == 1;
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
-  testWidgets('iPhone: instrucciones de Safari y calculadora web', (t) async {
-    await _montar(t, EstadoPwa.ios);
-    expect(find.textContaining('Agregar a inicio'), findsOneWidget);
-    expect(find.textContaining('calculadora web'), findsOneWidget);
-    expect(find.text('Instalar'), findsNothing);
-  });
-
-  testWidgets('Android con prompt: botón Instalar y enlace a Google Play', (t) async {
+  testWidgets('Android con prompt: aparece la barra con Instalar', (t) async {
     await _montar(t, EstadoPwa.androidPrompt);
+    expect(_visible(t), isTrue);
+    expect(find.text('Instala ¿Cuándo Pagan?'), findsOneWidget);
     expect(find.text('Instalar'), findsOneWidget);
-    expect(find.textContaining('Google Play'), findsOneWidget);
   });
 
-  testWidgets('Android sin prompt: instrucciones del menú de Chrome', (t) async {
-    await _montar(t, EstadoPwa.android);
-    expect(find.textContaining('menú ⋮'), findsOneWidget);
-    expect(find.text('Instalar'), findsNothing);
-  });
-
-  testWidgets('ya instalada o escritorio: no se muestra', (t) async {
-    await _montar(t, EstadoPwa.standalone);
-    expect(find.textContaining('pantalla de inicio'), findsNothing);
-    await _montar(t, EstadoPwa.otro);
-    expect(find.textContaining('pantalla de inicio'), findsNothing);
-  });
-
-  testWidgets('al cerrarlo se oculta y se recuerda', (t) async {
+  testWidgets('iPhone: Instalar abre la hoja con los pasos de Safari', (t) async {
     await _montar(t, EstadoPwa.ios);
-    await t.tap(find.byTooltip('Cerrar aviso'));
+    await t.tap(find.text('Instalar'));
     await t.pumpAndSettle();
-    expect(find.textContaining('pantalla de inicio'), findsNothing);
-    final p = await SharedPreferences.getInstance();
-    expect(p.getBool('aviso_instalar_cerrado_v1'), isTrue);
+    expect(find.text('Instálala en tu iPhone'), findsOneWidget);
+    expect(find.textContaining('Agregar a inicio'), findsOneWidget);
   });
 
-  testWidgets('si ya lo cerró antes, no vuelve a salir', (t) async {
-    SharedPreferences.setMockInitialValues({'aviso_instalar_cerrado_v1': true});
+  testWidgets('Android sin prompt: la hoja explica el menú de Chrome', (t) async {
+    await _montar(t, EstadoPwa.android);
+    await t.tap(find.text('Instalar'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('menú ⋮'), findsOneWidget);
+  });
+
+  testWidgets('ya instalada o escritorio: no aparece', (t) async {
+    await _montar(t, EstadoPwa.standalone);
+    expect(_visible(t), isFalse);
+    await _montar(t, EstadoPwa.otro);
+    expect(_visible(t), isFalse);
+  });
+
+  testWidgets('"Ahora no" la oculta y la pospone 14 días', (t) async {
+    await _montar(t, EstadoPwa.ios);
+    await t.tap(find.byTooltip('Ahora no'));
+    await t.pumpAndSettle();
+    expect(_visible(t), isFalse);
+    final p = await SharedPreferences.getInstance();
+    expect(DateTime.parse(p.getString('pwa_pospuesto_hasta_v1')!), _hoy.add(const Duration(days: 14)));
+  });
+
+  testWidgets('pospuesta: no sale antes de la fecha y vuelve a salir después', (t) async {
+    SharedPreferences.setMockInitialValues({'pwa_pospuesto_hasta_v1': DateTime(2026, 11, 20).toIso8601String()});
     await _montar(t, EstadoPwa.androidPrompt);
-    expect(find.text('Instalar'), findsNothing);
+    expect(_visible(t), isFalse);
+    await _montar(t, EstadoPwa.androidPrompt, hoy: DateTime(2026, 11, 21));
+    expect(_visible(t), isTrue);
+  });
+
+  testWidgets('cuenta las visitas', (t) async {
+    await _montar(t, EstadoPwa.otro);
+    final p = await SharedPreferences.getInstance();
+    expect(p.getInt('pwa_visitas_v1'), 1);
   });
 }
