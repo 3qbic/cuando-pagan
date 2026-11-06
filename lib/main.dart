@@ -53,7 +53,8 @@ const _sitio3qbic = 'https://3qbic.com';
 const _repoUrl = 'github.com/3qbic/cuando-pagan';
 const _contacto = 'cuandopagan@3qbic.com';
 const _mefFullUrl = 'https://www.mef.gob.pa/transparencia/calendario-de-pago-del-sector-publico/';
-const _xiiiMesPlayUrl = 'https://play.google.com/store/apps/details?id=com.amgd.xiiimespanama';
+const _xiiiMesPlayUrl =
+    'https://play.google.com/store/apps/details?id=com.amgd.xiiimespanama&referrer=utm_source%3Dcuandopagan%26utm_medium%3Dapp%26utm_campaign%3Ddecimo';
 
 Future<void> _abrir(String url) async {
   final uri = Uri.parse(url);
@@ -474,7 +475,7 @@ class HomeTab extends StatelessWidget {
               onPressed: () => _abrir(_xiiiMesPlayUrl),
               style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
               icon: const Icon(Icons.calculate_outlined, size: 16, color: _gold),
-              label: const Text('¿Cuánto te toca? Calcúlalo con XIII Mes Panamá (app hermana, no oficial)',
+              label: const Text('¿Cuánto te toca? Calcúlalo con Décimo Tercer Mes Panamá (app hermana, no oficial)',
                   style: TextStyle(fontSize: 12.5, color: _gold, fontWeight: FontWeight.w600)),
             ),
           ),
@@ -978,7 +979,7 @@ class DecimoTab extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text('¿Quieres saber cuánto te toca?', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: _hi)),
                   SizedBox(height: 2),
-                  Text('Calcúlalo con XIII Mes Panamá, nuestra app hermana (también independiente y no oficial).', style: TextStyle(fontSize: 12, color: _mid, height: 1.35)),
+                  Text('Calcúlalo con Décimo Tercer Mes Panamá, nuestra app hermana (también independiente y no oficial).', style: TextStyle(fontSize: 12, color: _mid, height: 1.35)),
                 ]),
               ),
               const Icon(Icons.open_in_new, size: 16, color: _mute),
