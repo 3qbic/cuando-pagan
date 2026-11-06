@@ -7,25 +7,25 @@ void main() {
     expect(
         textoEstadoDatos(
             const EstadoDatos(origen: OrigenDatos.semilla, dataVersion: 1)),
-        'Datos incluidos en la app · versión 1');
+        'Calendario de pagos: edición 1 (la que trae la app)');
   });
   test('caché', () {
     expect(
         textoEstadoDatos(
             const EstadoDatos(origen: OrigenDatos.cache, dataVersion: 2)),
-        'Datos guardados · versión 2');
+        'Calendario de pagos: edición 2 (guardada)');
   });
   test('sincronizado', () {
     expect(
         textoEstadoDatos(const EstadoDatos(
             origen: OrigenDatos.sincronizado, dataVersion: 2)),
-        'Actualizado · versión 2');
+        'Calendario de pagos: edición 2 (al día)');
   });
   test('con error añade sin conexión', () {
     expect(
         textoEstadoDatos(const EstadoDatos(
             origen: OrigenDatos.semilla, dataVersion: 1, ultimoError: 'x')),
-        'Datos incluidos en la app · versión 1 · sin conexión con el servidor');
+        'Calendario de pagos: edición 1 (la que trae la app) · sin conexión con el servidor');
   });
   test('textoVersionApp', () {
     expect(textoVersionApp('0.5.6'), 'Versión 0.5.6 · es la más reciente');
