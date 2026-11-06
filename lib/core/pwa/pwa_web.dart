@@ -41,3 +41,13 @@ Future<bool> instalarPwa() async {
     return false;
   }
 }
+
+@JS('cpRecargar')
+external void _recargar();
+
+/// Recarga la página para cargar la versión publicada.
+void recargarApp() {
+  try {
+    _recargar();
+  } catch (_) {}
+}

@@ -28,6 +28,7 @@ void main() {
         'Datos incluidos en la app · versión 1 · sin conexión con el servidor');
   });
   test('textoVersionApp', () {
-    expect(textoVersionApp('0.5.0'), 'App versión 0.5.0');
+    expect(textoVersionApp('0.5.6'), 'Versión 0.5.6 · es la más reciente');
+    expect(textoVersionApp('0.5.6', nueva: '0.5.7'), 'Versión 0.5.6 · hay una nueva: 0.5.7');
   });
 }
