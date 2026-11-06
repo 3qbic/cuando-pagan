@@ -5,6 +5,16 @@ import 'pwa.dart';
 @JS('cpPwaEstado')
 external JSString? _estado();
 
+@JS('cpPwaAlCambiar')
+external void _alCambiar(JSFunction f);
+
+/// Llama a [f] cuando Chrome habilita la instalación directa o la app se instala.
+void alCambiarPwa(void Function() f) {
+  try {
+    _alCambiar(f.toJS);
+  } catch (_) {}
+}
+
 @JS('cpPwaInstalar')
 external JSPromise<JSBoolean>? _instalar();
 

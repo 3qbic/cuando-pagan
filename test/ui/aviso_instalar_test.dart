@@ -40,11 +40,9 @@ void main() {
     expect(find.textContaining('Agregar a inicio'), findsOneWidget);
   });
 
-  testWidgets('Android sin prompt: la hoja explica el menú de Chrome', (t) async {
+  testWidgets('Android sin permiso de Chrome (o ya instalada): no aparece, nada de mandar al menú', (t) async {
     await _montar(t, EstadoPwa.android);
-    await t.tap(find.text('Instalar'));
-    await t.pumpAndSettle();
-    expect(find.textContaining('menú ⋮'), findsOneWidget);
+    expect(_visible(t), isFalse);
   });
 
   testWidgets('ya instalada o escritorio: no aparece', (t) async {

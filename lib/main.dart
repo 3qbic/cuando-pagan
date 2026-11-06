@@ -518,6 +518,7 @@ class _BarraInstalarState extends State<BarraInstalar> {
   static const posponerDias = 14;
   EstadoPwa _estado = EstadoPwa.otro;
   bool _visible = false;
+  bool _elegible = false; // ya pasó el filtro de visitas y "Ahora no"
 
   DateTime get _hoy => widget.hoy ?? DateTime.now();
 
@@ -525,6 +526,7 @@ class _BarraInstalarState extends State<BarraInstalar> {
   void initState() {
     super.initState();
     _estado = widget.estadoInicial ?? estadoPwa();
+    if (widget.estadoInicial == null) alCambiarPwa(_evaluar); // Chrome avisa cuando quiere, no al cargar
     _decidir();
   }
 
@@ -535,11 +537,18 @@ class _BarraInstalarState extends State<BarraInstalar> {
     final hasta = DateTime.tryParse(p.getString(kPospuesto) ?? '');
     if (hasta != null && _hoy.isBefore(hasta)) return;
     if (visitas < 2) await Future<void>.delayed(widget.retrasoPrimeraVisita);
-    if (!mounted) return;
-    if (widget.estadoInicial == null) _estado = estadoPwa(); // Chrome avisa tarde que se puede instalar
-    if (_estado == EstadoPwa.ios || _estado == EstadoPwa.android || _estado == EstadoPwa.androidPrompt) {
-      setState(() => _visible = true);
-    }
+    _elegible = true;
+    _evaluar();
+  }
+
+  /// En Android sale solo si Chrome permite instalar directo (como DojoManager):
+  /// sin ese permiso (ya instalada, otro navegador) no se muestra nada. En iPhone
+  /// no existe ese permiso, así que se muestran los pasos de Safari.
+  void _evaluar() {
+    if (!mounted || !_elegible) return;
+    if (widget.estadoInicial == null) _estado = estadoPwa();
+    final mostrar = _estado == EstadoPwa.ios || _estado == EstadoPwa.androidPrompt;
+    if (mostrar != _visible) setState(() => _visible = mostrar);
   }
 
   Future<void> _posponer() async {
@@ -550,8 +559,14 @@ class _BarraInstalarState extends State<BarraInstalar> {
 
   Future<void> _accion() async {
     if (_estado == EstadoPwa.androidPrompt) {
+      // Abre directo el cuadro de Chrome "¿Instalar app?". El permiso es de un solo uso.
       final ok = await instalarPwa();
-      if (ok && mounted) setState(() => _visible = false);
+      if (!mounted) return;
+      if (ok) {
+        setState(() => _visible = false);
+      } else {
+        await _posponer();
+      }
       return;
     }
     await showModalBottomSheet<void>(
