@@ -49,6 +49,30 @@
       });
     }
   </script>
+  <script>
+    // Aviso "instala la app": guarda el prompt de Chrome Android y expone el
+    // estado a Flutter (lib/core/pwa/pwa_web.dart). Sin rastreo: nada sale del navegador.
+    (function () {
+      var promptGuardado = null;
+      window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); promptGuardado = e; });
+      window.addEventListener('appinstalled', function () { promptGuardado = null; });
+      window.cpPwaEstado = function () {
+        var ua = navigator.userAgent || '';
+        var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+        if (standalone) return 'standalone';
+        var ios = /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+        if (ios) return 'ios';
+        if (/Android/i.test(ua)) return promptGuardado ? 'android-prompt' : 'android';
+        return 'otro';
+      };
+      window.cpPwaInstalar = function () {
+        if (!promptGuardado) return Promise.resolve(false);
+        var p = promptGuardado; promptGuardado = null;
+        p.prompt();
+        return p.userChoice.then(function (r) { return r && r.outcome === 'accepted'; }, function () { return false; });
+      };
+    })();
+  </script>
 </head>
 <body>
   <!--
