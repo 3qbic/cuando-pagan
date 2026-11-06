@@ -576,12 +576,12 @@ class _BarraInstalarState extends State<BarraInstalar> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
             child: Material(
-              color: const Color(0xFF111C2A),
-              elevation: 10,
-              shadowColor: Colors.black,
+              color: const Color(0xFFF5F8FB),
+              elevation: 16,
+              shadowColor: const Color(0xCC000000),
               borderRadius: BorderRadius.circular(18),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+                padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
                 child: Row(children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(11),
@@ -590,17 +590,17 @@ class _BarraInstalarState extends State<BarraInstalar> {
                   const SizedBox(width: 12),
                   const Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                      Text('Instala ¿Cuándo Pagan?', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: _hi)),
+                      Text('Instala ¿Cuándo Pagan?', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF0B1724))),
                       SizedBox(height: 2),
-                      Text('Gratis y sin anuncios. Ábrela como una app.', style: TextStyle(fontSize: 12, color: _mid)),
+                      Text('Gratis y sin anuncios.', style: TextStyle(fontSize: 13, color: Color(0xFF4A5A6E))),
                     ]),
                   ),
                   FilledButton(
                     onPressed: _accion,
                     style: FilledButton.styleFrom(
-                      backgroundColor: _acc,
-                      foregroundColor: const Color(0xFF04261A),
-                      minimumSize: const Size(0, 40),
+                      backgroundColor: const Color(0xFF087A52),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 44),
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       shape: const StadiumBorder(),
                     ),
@@ -609,7 +609,7 @@ class _BarraInstalarState extends State<BarraInstalar> {
                   IconButton(
                     tooltip: 'Ahora no',
                     onPressed: _posponer,
-                    icon: const Icon(Icons.close_rounded, size: 18, color: _mute),
+                    icon: const Icon(Icons.close_rounded, size: 20, color: Color(0xFF4A5A6E)),
                   ),
                 ]),
               ),
