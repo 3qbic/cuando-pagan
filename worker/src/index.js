@@ -11,12 +11,15 @@ import grupos from "./data/grupos_entidades.json";
 import xiii from "./data/xiii_mes.json";
 import { dimensionesApertura, registrar } from "./metricas.js";
 import { fetchMefSemesters, keyNum, MEF_URL } from "./mef.js";
+import { avisosDelDia, hoyPanama } from "./push/avisos.js";
+import { enviarATema, gestionarTemas } from "./push/fcm.js";
+import { manejarPush } from "./push/rutas.js";
 
 const VERSION_TAG = `"v${manifest.data_version}"`; // ETag basado en data_version
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, If-None-Match",
 };
 
@@ -68,26 +71,44 @@ async function buildStatus() {
   };
 }
 
+/** Envía los avisos de "hoy" (Panamá). Exportada para probar con hoy simulado. */
+export async function enviarRecordatorios(env, hoy, enviar = enviarATema) {
+  const avisos = avisosDelDia(hoy, calendario, xiii, manifest.semestres);
+  let ok = 0, fallos = 0;
+  for (const a of avisos) {
+    try { (await enviar(env, a)) ? ok++ : fallos++; } catch { fallos++; }
+  }
+  registrar(env, "push_envio", [hoy, "", ""], [ok, fallos]);
+  console.log(`push ${hoy}: ${ok} enviados, ${fallos} fallos`);
+  return { hoy, avisos: avisos.length, ok, fallos };
+}
+
 export default {
-  // Cron Trigger (ver wrangler.toml). Revisa el MEF y, si hay KV, guarda el resultado.
+  // Cron diario 12:00 UTC = 7:00 AM Panamá (ver wrangler.toml): envía los
+  // recordatorios del día y, los lunes, además revisa el MEF.
   async scheduled(event, env, ctx) {
-    const status = await buildStatus();
-    if (env && env.MEF_KV) {
-      await env.MEF_KV.put("status", JSON.stringify(status));
+    const ahora = new Date(event && event.scheduledTime ? event.scheduledTime : Date.now());
+    await enviarRecordatorios(env, hoyPanama(ahora));
+    if (ahora.getUTCDay() === 1) {
+      const status = await buildStatus();
+      if (env && env.MEF_KV) await env.MEF_KV.put("status", JSON.stringify(status));
     }
-    // (sin KV el cron corre igual pero no persiste; /v1/status hara check en vivo)
   },
 
   async fetch(request, env) {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS });
     }
+    const url = new URL(request.url);
+    const path = url.pathname.replace(/\/+$/, "") || "/";
+
+    if (request.method === "POST" && (path === "/v1/push/alta" || path === "/v1/push/baja")) {
+      const r = await manejarPush(request, env, path.endsWith("alta"), { gestionar: gestionarTemas, registrar });
+      return json(r.cuerpo, { status: r.status, noCache: true, etag: '"push"' });
+    }
     if (request.method !== "GET") {
       return new Response("Method Not Allowed", { status: 405, headers: CORS });
     }
-
-    const url = new URL(request.url);
-    const path = url.pathname.replace(/\/+$/, "") || "/";
 
     // Conteo anonimo de aperturas: ANTES del 304 para contar tambien las revalidaciones.
     if (path === "/v1/version") {

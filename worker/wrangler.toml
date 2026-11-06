@@ -17,9 +17,11 @@ enabled = true
 [observability.logs]
 invocation_logs = false
 
-# Cron Trigger (gratis): revisa el MEF cada lunes 12:00 UTC.
+# Cron Trigger (gratis): todos los días 12:00 UTC = 7:00 AM Panamá. Envía los
+# recordatorios push del día; los lunes además revisa el MEF.
+# Secret requerido para push: FCM_SA (JSON de la service account) -> `wrangler secret put FCM_SA`.
 [triggers]
-crons = ["0 12 * * 1"]
+crons = ["0 12 * * *"]
 
 # Metricas agregadas (sin IP ni ID). Esquema en src/metricas.js.
 [[analytics_engine_datasets]]
