@@ -11,6 +11,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'core/pwa/pwa.dart';
 import 'core/text/normalizar.dart';
 import 'core/time/hoy_panama.dart';
 import 'core/time/tz.dart';
@@ -57,6 +58,7 @@ const _xiiiMesPlayUrl =
     'https://play.google.com/store/apps/details?id=com.amgd.xiiimespanama&referrer=utm_source%3Dcuandopagan%26utm_medium%3Dapp%26utm_campaign%3Ddecimo';
 
 const _xiiiMesIcon = 'assets/img/xiii_mes_icon.png';
+const _xiiiMesWebUrl = 'https://xiiimespanama.3qbic.com/?utm_source=cuandopagan&utm_medium=web&utm_campaign=decimo';
 
 Future<void> _abrir(String url) async {
   final uri = Uri.parse(url);
@@ -461,6 +463,7 @@ class HomeTab extends StatelessWidget {
       children: [
         _InstitucionCard(seleccion: seleccion, recordar: recordar, onRecordar: onRecordar, onCambiar: onCambiar),
         const SizedBox(height: 14),
+        const AvisoInstalar(),
         if (res.recienPasado != null) ...[
           _AvisoRecienPagado(evento: res.recienPasado!),
           const SizedBox(height: 14),
@@ -486,6 +489,123 @@ class HomeTab extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Aviso para instalar la app en la pantalla de inicio (Android/iPhone) y para
+/// llegar a la calculadora del décimo. Se oculta si ya está instalada, en
+/// escritorio, o si el usuario lo cierra (se recuerda en el dispositivo).
+class AvisoInstalar extends StatefulWidget {
+  const AvisoInstalar({super.key, this.estadoInicial});
+  /// Solo para tests; en la app se lee del navegador.
+  final EstadoPwa? estadoInicial;
+  @override
+  State<AvisoInstalar> createState() => _AvisoInstalarState();
+}
+
+class _AvisoInstalarState extends State<AvisoInstalar> {
+  static const _kCerrado = 'aviso_instalar_cerrado_v1';
+  EstadoPwa _estado = EstadoPwa.otro;
+  bool _cerrado = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _estado = widget.estadoInicial ?? estadoPwa();
+    SharedPreferences.getInstance().then((p) {
+      if (mounted) setState(() => _cerrado = p.getBool(_kCerrado) ?? false);
+    });
+    // Chrome Android avisa que se puede instalar unos segundos después de cargar.
+    if (widget.estadoInicial == null) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _estado = estadoPwa());
+      });
+    }
+  }
+
+  Future<void> _cerrar() async {
+    setState(() => _cerrado = true);
+    (await SharedPreferences.getInstance()).setBool(_kCerrado, true);
+  }
+
+  Future<void> _instalar() async {
+    final ok = await instalarPwa();
+    if (ok && mounted) setState(() => _estado = EstadoPwa.standalone);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ios = _estado == EstadoPwa.ios;
+    final android = _estado == EstadoPwa.android || _estado == EstadoPwa.androidPrompt;
+    if (_cerrado || !(ios || android)) return const SizedBox.shrink();
+    final instruccion = switch (_estado) {
+      EstadoPwa.ios => 'En Safari toca Compartir (el cuadro con la flecha ↑) y luego «Agregar a inicio».',
+      EstadoPwa.android => 'En Chrome abre el menú ⋮ y toca «Agregar a la pantalla principal».',
+      _ => 'Ábrela como una app, sin buscarla en el navegador.',
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Container(
+        decoration: _cardDeco(borde: const Color(0x3325E6A4)),
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const Icon(Icons.install_mobile_rounded, color: _acc, size: 22),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text('Ten ¿Cuándo Pagan? en tu pantalla de inicio',
+                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: _hi)),
+            ),
+            IconButton(
+              tooltip: 'Cerrar aviso',
+              onPressed: _cerrar,
+              icon: const Icon(Icons.close_rounded, size: 18, color: _mute),
+            ),
+          ]),
+          Padding(
+            padding: const EdgeInsets.only(left: 32, right: 8),
+            child: Text(instruccion, style: const TextStyle(fontSize: 12.5, color: _mid, height: 1.35)),
+          ),
+          if (_estado == EstadoPwa.androidPrompt)
+            Padding(
+              padding: const EdgeInsets.only(left: 32, top: 8),
+              child: FilledButton.icon(
+                onPressed: _instalar,
+                style: FilledButton.styleFrom(backgroundColor: _acc, foregroundColor: const Color(0xFF04261A), minimumSize: const Size(0, 44)),
+                icon: const Icon(Icons.download_rounded, size: 18),
+                label: const Text('Instalar', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          const Padding(
+            padding: EdgeInsets.only(left: 32, top: 10, right: 8),
+            child: Divider(height: 1, color: Color(0x22FFFFFF)),
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => _abrir(ios ? _xiiiMesWebUrl : _xiiiMesPlayUrl),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 32, top: 10, right: 8),
+              child: Row(children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(_xiiiMesIcon, width: 32, height: 32, semanticLabel: 'Logo de Décimo Tercer Mes Panamá'),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    ios
+                        ? '¿Cuánto te toca de décimo? Calcúlalo en la calculadora web de Décimo Tercer Mes Panamá.'
+                        : '¿Cuánto te toca de décimo? Descarga Décimo Tercer Mes Panamá en Google Play (gratis).',
+                    style: const TextStyle(fontSize: 12.5, color: _gold, fontWeight: FontWeight.w600, height: 1.3),
+                  ),
+                ),
+                const Icon(Icons.open_in_new, size: 16, color: _mute),
+              ]),
+            ),
+          ),
+        ]),
+      ),
     );
   }
 }
