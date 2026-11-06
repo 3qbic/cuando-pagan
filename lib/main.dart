@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'core/pwa/pwa.dart';
+import 'core/version.dart';
 import 'core/text/normalizar.dart';
 import 'core/time/hoy_panama.dart';
 import 'core/time/tz.dart';
@@ -137,18 +138,22 @@ class _Glow extends StatelessWidget {
 // ───────────────────────── Datos + lógica ─────────────────────────
 
 /// Versión real de la app (pubspec), o null si no se pudo leer.
-Future<String?> _leerVersionApp() async {
+/// Versión publicada en el servidor (version.json). Si su build es mayor que el
+/// de esta copia, devuelve su número: hay una versión nueva. Nunca lanza.
+Future<String?> _versionNuevaEnServidor() async {
   try {
-    final v = (await PackageInfo.fromPlatform().timeout(const Duration(seconds: 2))).version;
-    return v.isEmpty ? null : v;
+    final info = await PackageInfo.fromPlatform().timeout(const Duration(seconds: 3));
+    final build = int.tryParse(info.buildNumber) ?? 0;
+    return build > kBuildApp && info.version.isNotEmpty ? info.version : null;
   } catch (_) {
-    debugPrint('[sync] sin versión de app');
+    debugPrint('[app] no se pudo consultar la versión publicada');
     return null;
   }
 }
 
-/// Línea discreta de Acerca con la versión real de la app.
-String textoVersionApp(String v) => 'App versión $v';
+/// Línea de Acerca: la versión que está corriendo y si es la más reciente.
+String textoVersionApp(String instalada, {String? nueva}) =>
+    nueva == null ? 'Versión $instalada · es la más reciente' : 'Versión $instalada · hay una nueva: $nueva';
 
 Future<DatasetSync> _crearSync(SharedPreferences prefs, String? appVersion) async {
   final siglas = cargarSiglas(jsonDecode(await rootBundle.loadString('assets/data/siglas_entidades.json')) as Map<String, dynamic>);
@@ -232,7 +237,7 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> {
   Dataset? _ds;
   EstadoDatos? _estado;
-  String? _appVersion;
+  String? _versionNueva; // publicada y más reciente que la que corre
   List<Seleccion> _ops = const [];
   Seleccion? _sel;        // institución que se está consultando (persistida o no)
   bool _recordar = true;  // ¿_sel guardada como favorita? (ganchito "recordar")
@@ -250,8 +255,8 @@ class _RootPageState extends State<RootPage> {
     final prefs = await SharedPreferences.getInstance();
     // La versión no bloquea el primer frame: en web package_info_plus pide
     // version.json por red. Se resuelve en paralelo y se usa al sincronizar.
-    final versionF = _leerVersionApp();
-    final sync = await _crearSync(prefs, null);
+    final versionF = _versionNuevaEnServidor();
+    final sync = await _crearSync(prefs, kVersionApp);
     final ds = await sync.cargarInicial();
     final token = prefs.getString(_kFavorita);
     final ack = prefs.getBool(_kDisclaimer) ?? false;
@@ -271,11 +276,8 @@ class _RootPageState extends State<RootPage> {
   }
 
   Future<void> _sincronizar(DatasetSync sync, SharedPreferences prefs, Future<String?> versionF) async {
-    final appVersion = await versionF; // nunca lanza (timeout 2 s en _leerVersionApp)
-    if (appVersion != null) {
-      sync.appVersion = appVersion;
-      if (mounted) setState(() => _appVersion = appVersion);
-    }
+    final nueva = await versionF; // nunca lanza
+    if (nueva != null && mounted) setState(() => _versionNueva = nueva);
     final nuevo = await sync.sincronizar();
     if (!mounted) return;
     if (nuevo == null) {
@@ -343,7 +345,7 @@ class _RootPageState extends State<RootPage> {
       body = switch (_tab) {
         1 => CalendarioTab(ds: _ds!, seleccion: _sel!),
         2 => DecimoTab(ds: _ds!),
-        3 => AcercaContenido(estado: _estado, appVersion: _appVersion),
+        3 => AcercaContenido(estado: _estado, versionNueva: _versionNueva),
         _ => HomeTab(ds: _ds!, seleccion: _sel!, recordar: _recordar, onRecordar: _setRecordar, onCambiar: _cambiar),
       };
     }
@@ -355,7 +357,7 @@ class _RootPageState extends State<RootPage> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
               child: Column(children: [
-                _Header(estado: _estado, appVersion: _appVersion),
+                _Header(estado: _estado, versionNueva: _versionNueva),
                 Expanded(
                   child: Stack(children: [
                     Positioned.fill(child: body),
@@ -373,9 +375,9 @@ class _RootPageState extends State<RootPage> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({this.estado, this.appVersion});
+  const _Header({this.estado, this.versionNueva});
   final EstadoDatos? estado;
-  final String? appVersion;
+  final String? versionNueva;
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -388,7 +390,7 @@ class _Header extends StatelessWidget {
           label: 'Aviso: aplicación independiente, no oficial, no afiliada al Gobierno de Panamá. Toca para Acerca de.',
           child: InkWell(
             borderRadius: BorderRadius.circular(999),
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado, appVersion: appVersion))),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado, versionNueva: versionNueva))),
             child: Container(
               constraints: const BoxConstraints(minHeight: 34),
               padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
@@ -403,7 +405,7 @@ class _Header extends StatelessWidget {
         ),
         IconButton(
           icon: const Icon(Icons.more_vert, color: _mid),
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado, appVersion: appVersion))),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => AcercaDeScreen(estado: estado, versionNueva: versionNueva))),
         ),
       ]),
     );
@@ -1356,22 +1358,22 @@ Widget _enlace(BuildContext context, IconData icon, String texto, VoidCallback o
     );
 
 class AcercaContenido extends StatelessWidget {
-  const AcercaContenido({super.key, this.estado, this.appVersion});
+  const AcercaContenido({super.key, this.estado, this.versionNueva});
   final EstadoDatos? estado;
-  final String? appVersion;
+  final String? versionNueva;
   @override
-  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: _acercaHijos(context, estado, appVersion));
+  Widget build(BuildContext context) => ListView(padding: const EdgeInsets.fromLTRB(18, 8, 18, 24), children: _acercaHijos(context, estado, versionNueva));
 }
 
 class AcercaDeScreen extends StatelessWidget {
-  const AcercaDeScreen({super.key, this.estado, this.appVersion});
+  const AcercaDeScreen({super.key, this.estado, this.versionNueva});
   final EstadoDatos? estado;
-  final String? appVersion;
+  final String? versionNueva;
   @override
-  Widget build(BuildContext context) => _legalScaffold(context, 'Acerca de', _acercaHijos(context, estado, appVersion));
+  Widget build(BuildContext context) => _legalScaffold(context, 'Acerca de', _acercaHijos(context, estado, versionNueva));
 }
 
-List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado, String? appVersion) => [
+List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado, String? versionNueva) => [
       const Text('App independiente y no oficial', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: _hi, height: 1.15)),
       const SizedBox(height: 14),
       _seccion('Qué es', '«¿Cuándo Pagan?» es un proyecto independiente, gratuito y de código abierto que te muestra las fechas de pago del sector público de Panamá: jubilados, gastos de representación y grupos 1, 2 y 3.'),
@@ -1384,14 +1386,17 @@ List<Widget> _acercaHijos(BuildContext context, EstadoDatos? estado, String? app
       _enlace(context, Icons.code, 'Código fuente (repositorio)', () => _abrir('https://$_repoUrl')),
       _enlace(context, Icons.mail_outline, 'Escríbenos: $_contacto', () => _abrir('mailto:$_contacto')),
       _enlace(context, Icons.language, 'Hecho por 3qbic', () => _abrir(_sitio3qbic)),
-      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: appVersion, applicationLegalese: '© 2026 $_titular — Alexis García')),
+      _enlace(context, Icons.workspace_premium_outlined, 'Licencias de software (open source)', () => showLicensePage(context: context, applicationName: '¿Cuándo Pagan?', applicationVersion: kVersionApp, applicationLegalese: '© 2026 $_titular — Alexis García')),
       _enlace(context, Icons.privacy_tip_outlined, 'Política de privacidad', () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacidadScreen()))),
       const SizedBox(height: 12),
       const Text('© 2026 3qbic · ¿Cuándo Pagan? · Hecho por Alexis García · Licencia MIT.', style: TextStyle(fontSize: 12, color: _mute, height: 1.4)),
-      if (appVersion != null) ...[
-        const SizedBox(height: 6),
-        Text(textoVersionApp(appVersion), style: const TextStyle(fontSize: 12, color: _mute, height: 1.4)),
-      ],
+      const SizedBox(height: 6),
+      Text(textoVersionApp(kVersionApp, nueva: versionNueva), style: const TextStyle(fontSize: 12, color: _mute, height: 1.4)),
+      if (versionNueva != null)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(onPressed: recargarApp, icon: const Icon(Icons.system_update_alt_rounded, size: 18), label: const Text('Actualizar ahora')),
+        ),
       if (estado != null) ...[
         const SizedBox(height: 6),
         Text(textoEstadoDatos(estado), style: const TextStyle(fontSize: 12, color: _mute, height: 1.4)),

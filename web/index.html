@@ -68,6 +68,7 @@
         ultimo = Date.now();
         leer().then(function (v) { if (v && v !== inicial) window.location.reload(); });
       }
+      window.cpRecargar = function () { window.location.reload(); };
       document.addEventListener('visibilitychange', revisar);
       setInterval(revisar, 3600000);
     })();
