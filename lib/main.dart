@@ -58,7 +58,6 @@ const _xiiiMesPlayUrl =
     'https://play.google.com/store/apps/details?id=com.amgd.xiiimespanama&referrer=utm_source%3Dcuandopagan%26utm_medium%3Dapp%26utm_campaign%3Ddecimo';
 
 const _xiiiMesIcon = 'assets/img/xiii_mes_icon.png';
-const _xiiiMesWebUrl = 'https://xiiimespanama.3qbic.com/?utm_source=cuandopagan&utm_medium=web&utm_campaign=decimo';
 
 Future<void> _abrir(String url) async {
   final uri = Uri.parse(url);
@@ -355,7 +354,15 @@ class _RootPageState extends State<RootPage> {
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(children: [_Header(estado: _estado, appVersion: _appVersion), Expanded(child: body)]),
+              child: Column(children: [
+                _Header(estado: _estado, appVersion: _appVersion),
+                Expanded(
+                  child: Stack(children: [
+                    Positioned.fill(child: body),
+                    if (nav) const Positioned(left: 0, right: 0, bottom: 0, child: BarraInstalar()),
+                  ]),
+                ),
+              ]),
             ),
           ),
         ),
@@ -463,7 +470,6 @@ class HomeTab extends StatelessWidget {
       children: [
         _InstitucionCard(seleccion: seleccion, recordar: recordar, onRecordar: onRecordar, onCambiar: onCambiar),
         const SizedBox(height: 14),
-        const AvisoInstalar(),
         if (res.recienPasado != null) ...[
           _AvisoRecienPagado(evento: res.recienPasado!),
           const SizedBox(height: 14),
@@ -493,117 +499,177 @@ class HomeTab extends StatelessWidget {
   }
 }
 
-/// Aviso para instalar la app en la pantalla de inicio (Android/iPhone) y para
-/// llegar a la calculadora del décimo. Se oculta si ya está instalada, en
-/// escritorio, o si el usuario lo cierra (se recuerda en el dispositivo).
-class AvisoInstalar extends StatefulWidget {
-  const AvisoInstalar({super.key, this.estadoInicial});
-  /// Solo para tests; en la app se lee del navegador.
-  final EstadoPwa? estadoInicial;
+/// Barra flotante para instalar la PWA, al estilo de las apps grandes: sale abajo
+/// tras la 2.ª visita (o a los 20 s de la primera), con ícono, nombre, una razón
+/// y un solo botón. En iPhone abre una hoja con los pasos de Safari. Si la cierran,
+/// se pospone 14 días. Nada sale del dispositivo.
+class BarraInstalar extends StatefulWidget {
+  const BarraInstalar({super.key, this.estadoInicial, this.retrasoPrimeraVisita = const Duration(seconds: 20), this.hoy});
+  final EstadoPwa? estadoInicial; // tests
+  final Duration retrasoPrimeraVisita;
+  final DateTime? hoy; // tests
   @override
-  State<AvisoInstalar> createState() => _AvisoInstalarState();
+  State<BarraInstalar> createState() => _BarraInstalarState();
 }
 
-class _AvisoInstalarState extends State<AvisoInstalar> {
-  static const _kCerrado = 'aviso_instalar_cerrado_v1';
+class _BarraInstalarState extends State<BarraInstalar> {
+  static const kVisitas = 'pwa_visitas_v1';
+  static const kPospuesto = 'pwa_pospuesto_hasta_v1';
+  static const posponerDias = 14;
   EstadoPwa _estado = EstadoPwa.otro;
-  bool _cerrado = true;
+  bool _visible = false;
+
+  DateTime get _hoy => widget.hoy ?? DateTime.now();
 
   @override
   void initState() {
     super.initState();
     _estado = widget.estadoInicial ?? estadoPwa();
-    SharedPreferences.getInstance().then((p) {
-      if (mounted) setState(() => _cerrado = p.getBool(_kCerrado) ?? false);
-    });
-    // Chrome Android avisa que se puede instalar unos segundos después de cargar.
-    if (widget.estadoInicial == null) {
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted) setState(() => _estado = estadoPwa());
-      });
+    _decidir();
+  }
+
+  Future<void> _decidir() async {
+    final p = await SharedPreferences.getInstance();
+    final visitas = (p.getInt(kVisitas) ?? 0) + 1;
+    await p.setInt(kVisitas, visitas);
+    final hasta = DateTime.tryParse(p.getString(kPospuesto) ?? '');
+    if (hasta != null && _hoy.isBefore(hasta)) return;
+    if (visitas < 2) await Future<void>.delayed(widget.retrasoPrimeraVisita);
+    if (!mounted) return;
+    if (widget.estadoInicial == null) _estado = estadoPwa(); // Chrome avisa tarde que se puede instalar
+    if (_estado == EstadoPwa.ios || _estado == EstadoPwa.android || _estado == EstadoPwa.androidPrompt) {
+      setState(() => _visible = true);
     }
   }
 
-  Future<void> _cerrar() async {
-    setState(() => _cerrado = true);
-    (await SharedPreferences.getInstance()).setBool(_kCerrado, true);
+  Future<void> _posponer() async {
+    setState(() => _visible = false);
+    final p = await SharedPreferences.getInstance();
+    await p.setString(kPospuesto, _hoy.add(const Duration(days: posponerDias)).toIso8601String());
   }
 
-  Future<void> _instalar() async {
-    final ok = await instalarPwa();
-    if (ok && mounted) setState(() => _estado = EstadoPwa.standalone);
+  Future<void> _accion() async {
+    if (_estado == EstadoPwa.androidPrompt) {
+      final ok = await instalarPwa();
+      if (ok && mounted) setState(() => _visible = false);
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF0E1622),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
+      builder: (_) => PasosInstalar(ios: _estado == EstadoPwa.ios),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final ios = _estado == EstadoPwa.ios;
-    final android = _estado == EstadoPwa.android || _estado == EstadoPwa.androidPrompt;
-    if (_cerrado || !(ios || android)) return const SizedBox.shrink();
-    final instruccion = switch (_estado) {
-      EstadoPwa.ios => 'En Safari toca Compartir (el cuadro con la flecha ↑) y luego «Agregar a inicio».',
-      EstadoPwa.android => 'En Chrome abre el menú ⋮ y toca «Agregar a la pantalla principal».',
-      _ => 'Ábrela como una app, sin buscarla en el navegador.',
-    };
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Container(
-        decoration: _cardDeco(borde: const Color(0x3325E6A4)),
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 14),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            const Icon(Icons.install_mobile_rounded, color: _acc, size: 22),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Text('Ten ¿Cuándo Pagan? en tu pantalla de inicio',
-                  style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: _hi)),
-            ),
-            IconButton(
-              tooltip: 'Cerrar aviso',
-              onPressed: _cerrar,
-              icon: const Icon(Icons.close_rounded, size: 18, color: _mute),
-            ),
-          ]),
-          Padding(
-            padding: const EdgeInsets.only(left: 32, right: 8),
-            child: Text(instruccion, style: const TextStyle(fontSize: 12.5, color: _mid, height: 1.35)),
-          ),
-          if (_estado == EstadoPwa.androidPrompt)
-            Padding(
-              padding: const EdgeInsets.only(left: 32, top: 8),
-              child: FilledButton.icon(
-                onPressed: _instalar,
-                style: FilledButton.styleFrom(backgroundColor: _acc, foregroundColor: const Color(0xFF04261A), minimumSize: const Size(0, 44)),
-                icon: const Icon(Icons.download_rounded, size: 18),
-                label: const Text('Instalar', style: TextStyle(fontWeight: FontWeight.w700)),
+    return IgnorePointer(
+      ignoring: !_visible,
+      child: AnimatedSlide(
+        offset: _visible ? Offset.zero : const Offset(0, 1.3),
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOutCubic,
+        child: AnimatedOpacity(
+          opacity: _visible ? 1 : 0,
+          duration: const Duration(milliseconds: 220),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+            child: Material(
+              color: const Color(0xFF111C2A),
+              elevation: 10,
+              shadowColor: Colors.black,
+              borderRadius: BorderRadius.circular(18),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+                child: Row(children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(11),
+                    child: Image.asset('assets/img/cuandopagan_icon.png', width: 44, height: 44, semanticLabel: 'Ícono de ¿Cuándo Pagan?'),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                      Text('Instala ¿Cuándo Pagan?', style: TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: _hi)),
+                      SizedBox(height: 2),
+                      Text('Gratis y sin anuncios. Ábrela como una app.', style: TextStyle(fontSize: 12, color: _mid)),
+                    ]),
+                  ),
+                  FilledButton(
+                    onPressed: _accion,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _acc,
+                      foregroundColor: const Color(0xFF04261A),
+                      minimumSize: const Size(0, 40),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      shape: const StadiumBorder(),
+                    ),
+                    child: const Text('Instalar', style: TextStyle(fontWeight: FontWeight.w800)),
+                  ),
+                  IconButton(
+                    tooltip: 'Ahora no',
+                    onPressed: _posponer,
+                    icon: const Icon(Icons.close_rounded, size: 18, color: _mute),
+                  ),
+                ]),
               ),
             ),
-          const Padding(
-            padding: EdgeInsets.only(left: 32, top: 10, right: 8),
-            child: Divider(height: 1, color: Color(0x22FFFFFF)),
           ),
-          InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => _abrir(ios ? _xiiiMesWebUrl : _xiiiMesPlayUrl),
-            child: Padding(
-              padding: const EdgeInsets.only(left: 32, top: 10, right: 8),
+        ),
+      ),
+    );
+  }
+}
+
+/// Hoja con los pasos para instalar (Safari en iPhone, o el menú de Chrome).
+class PasosInstalar extends StatelessWidget {
+  const PasosInstalar({required this.ios, super.key});
+  final bool ios;
+  @override
+  Widget build(BuildContext context) {
+    final pasos = ios
+        ? const [
+            (Icons.ios_share_rounded, 'Toca Compartir', 'El cuadro con la flecha ↑ en la barra de Safari.'),
+            (Icons.add_box_outlined, 'Elige «Agregar a inicio»', 'Baja un poco en el menú si no lo ves.'),
+            (Icons.check_circle_outline_rounded, 'Listo', 'Ábrela desde el ícono en tu pantalla de inicio.'),
+          ]
+        : const [
+            (Icons.more_vert_rounded, 'Abre el menú ⋮', 'Arriba a la derecha en Chrome.'),
+            (Icons.add_to_home_screen_rounded, 'Toca «Instalar app»', 'O «Agregar a la pantalla principal».'),
+            (Icons.check_circle_outline_rounded, 'Listo', 'Ábrela desde el ícono en tu pantalla de inicio.'),
+          ];
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(22, 14, 22, 18),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: _mute, borderRadius: BorderRadius.circular(2)))),
+          const SizedBox(height: 16),
+          Row(children: [
+            ClipRRect(borderRadius: BorderRadius.circular(10), child: Image.asset('assets/img/cuandopagan_icon.png', width: 36, height: 36)),
+            const SizedBox(width: 10),
+            Text(ios ? 'Instálala en tu iPhone' : 'Instálala en tu Android',
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _hi)),
+          ]),
+          const SizedBox(height: 14),
+          for (var i = 0; i < pasos.length; i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
               child: Row(children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(_xiiiMesIcon, width: 32, height: 32, semanticLabel: 'Logo de Décimo Tercer Mes Panamá'),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(color: const Color(0x1F25E6A4), borderRadius: BorderRadius.circular(10)),
+                  child: Icon(pasos[i].$1, color: _acc, size: 22),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    ios
-                        ? '¿Cuánto te toca de décimo? Calcúlalo en la calculadora web de Décimo Tercer Mes Panamá.'
-                        : '¿Cuánto te toca de décimo? Descarga Décimo Tercer Mes Panamá en Google Play (gratis).',
-                    style: const TextStyle(fontSize: 12.5, color: _gold, fontWeight: FontWeight.w600, height: 1.3),
-                  ),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('${i + 1}. ${pasos[i].$2}', style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700, color: _hi)),
+                    Text(pasos[i].$3, style: const TextStyle(fontSize: 12.5, color: _mid)),
+                  ]),
                 ),
-                const Icon(Icons.open_in_new, size: 16, color: _mute),
               ]),
             ),
-          ),
         ]),
       ),
     );
