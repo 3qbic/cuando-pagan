@@ -442,7 +442,7 @@ class _BottomNav extends StatelessWidget {
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(_items[i].$1, size: 23, color: i == index ? _acc : _mute),
                   const SizedBox(height: 4),
-                  Text(_items[i].$2, style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w600, color: i == index ? _acc : _mute)),
+                  Text(_items[i].$2, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: i == index ? _acc : _mute)),
                 ]),
               ),
             ),
@@ -719,7 +719,7 @@ class _InstitucionCard extends StatelessWidget {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(recordar ? 'MI INSTITUCIÓN' : 'CONSULTANDO',
-                  style: const TextStyle(fontSize: 10, letterSpacing: 1.3, color: _mute, fontWeight: FontWeight.w700)),
+                  style: const TextStyle(fontSize: 11, letterSpacing: 1.3, color: _mute, fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
               Text(seleccion.etiqueta, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, color: _hi), maxLines: 2),
               Text(_descSeleccion(seleccion), style: const TextStyle(fontSize: 12, color: _mid)),
@@ -857,7 +857,7 @@ class _ChipTipo extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icono, size: 11, color: color),
         const SizedBox(width: 4),
-        Text(texto, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .8, color: color)),
+        Text(texto, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .8, color: color)),
       ]),
     );
   }
@@ -948,12 +948,12 @@ class _Ring extends StatelessWidget {
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               if (!esHoy)
                 Text(dias == 1 ? 'FALTA' : 'FALTAN',
-                    style: const TextStyle(fontSize: 8.5, color: _mid, letterSpacing: 1.2, fontWeight: FontWeight.w700)),
+                    style: const TextStyle(fontSize: 11, color: _mid, letterSpacing: .8, fontWeight: FontWeight.w700)),
               Text(esHoy ? 'HOY' : '$dias',
                   style: TextStyle(fontSize: esHoy ? 26 : 32, fontWeight: FontWeight.w800, color: Colors.white, height: 1.05)),
               if (!esHoy)
                 Text(dias == 1 ? 'DÍA' : 'DÍAS',
-                    style: const TextStyle(fontSize: 10, color: _mid, letterSpacing: .5)),
+                    style: const TextStyle(fontSize: 11, color: _mid, letterSpacing: .5)),
             ]),
           ),
         ),
@@ -999,7 +999,7 @@ class _ProcesoCard extends StatelessWidget {
       decoration: _cardDeco(),
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('PROCESO DEL PAGO', style: TextStyle(fontSize: 10.5, letterSpacing: 1.4, color: _mute, fontWeight: FontWeight.w700)),
+        const Text('PROCESO DEL PAGO', style: TextStyle(fontSize: 11, letterSpacing: 1.4, color: _mute, fontWeight: FontWeight.w700)),
         const SizedBox(height: 18),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1044,8 +1044,8 @@ class _Paso extends StatelessWidget {
           child: done ? const Icon(Icons.check, size: 13, color: Color(0xFF0A150F)) : (now ? const Center(child: _Dot()) : null),
         ),
         const SizedBox(height: 7),
-        Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 10.5, height: 1.2, color: now ? _hi : _mid, fontWeight: now ? FontWeight.w700 : FontWeight.w500)),
-        Text(fecha, style: const TextStyle(fontSize: 10.5, color: _mute)),
+        Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, height: 1.2, color: now ? _hi : _mid, fontWeight: now ? FontWeight.w700 : FontWeight.w500)),
+        Text(fecha, style: const TextStyle(fontSize: 11, color: _mute)),
       ]),
     );
   }
@@ -1114,7 +1114,7 @@ class CalendarioTab extends StatelessWidget {
                 decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), color: _surf2, border: Border.all(color: _line)),
                 child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   Text('${e.fechaPagoDate.day}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _hi, height: 1)),
-                  Text(DateFormat('MMM', 'es').format(e.fechaPagoDate), style: const TextStyle(fontSize: 10, color: _mid)),
+                  Text(DateFormat('MMM', 'es').format(e.fechaPagoDate), style: const TextStyle(fontSize: 11, color: _mid)),
                 ]),
               ),
               const SizedBox(width: 12),
